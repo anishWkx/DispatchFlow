@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const API = "http://localhost:5001";
+const API = "https://dispatchflow-as2e.onrender.com";
 
 const emptyAnalytics = {
   waiting: 0,
