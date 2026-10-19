@@ -1,9 +1,10 @@
 const Redis = require("ioredis");
 const initialDrivers = require("./drivers");
 
-const redis = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
+const redisUrl =
+  process.env.REDIS_URL || "redis://127.0.0.1:6379";
+
+const redis = new Redis(redisUrl, {
   lazyConnect: true,
   maxRetriesPerRequest: 3,
 });
