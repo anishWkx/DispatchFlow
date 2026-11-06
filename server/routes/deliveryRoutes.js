@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { deliveryQueue } = require("../queues/deliveryQueue");
+const pool = require("../config/db");
 
 const priorityMap = {
   high: 1,
@@ -11,6 +12,8 @@ const priorityMap = {
 
 // Create a delivery job
 router.post("/", async (req, res) => {
+  let deliveryId;
+
   try {
     const { pickup, dropoff } = req.body;
     const priority = String(req.body.priority || "normal").toLowerCase();
@@ -29,28 +32,49 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const job = await deliveryQueue.add(
-      "deliver-order",
-      { pickup, dropoff, priority },
-      {
-        priority: priorityMap[priority],
-        attempts: 3,
-        backoff: { type: "exponential", delay: 1000 },
-        removeOnComplete: false,
-      }
+    // Save delivery in MySQL
+    const [insertResult] = await pool.execute(
+      `INSERT INTO deliveries (pickup, dropoff, priority, status)
+       VALUES (?, ?, ?, 'pending')`,
+      [pickup, dropoff, priority]
     );
+
+    deliveryId = insertResult.insertId;
+
+    // Add delivery to BullMQ
+    let job;
+
+    try {
+      job = await deliveryQueue.add(
+        "deliver-order",
+        { deliveryId, pickup, dropoff, priority },
+        {
+          jobId: `delivery-${deliveryId}`,
+          priority: priorityMap[priority],
+          attempts: 3,
+          backoff: { type: "exponential", delay: 1000 },
+          removeOnComplete: false,
+        }
+      );
+    } catch (queueError) {
+      await pool.execute(
+        "UPDATE deliveries SET status = 'failed' WHERE id = ?",
+        [deliveryId]
+      );
+
+      throw queueError;
+    }
 
     return res.status(201).json({
       success: true,
-      message: "Delivery job added to queue",
+      message: "Delivery saved in MySQL and added to queue",
+      deliveryId,
       jobId: job.id,
-      data: {
-        ...job.data,
-        queuePriority: priorityMap[priority],
-      },
+      data: job.data,
     });
   } catch (error) {
     console.error("Create delivery error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Could not create delivery job",
@@ -58,28 +82,30 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get recent delivery jobs and their statuses
+// Get recent deliveries from MySQL
 router.get("/", async (req, res) => {
   try {
-    const jobs = await deliveryQueue.getJobs(
-      ["waiting", "active", "completed", "failed", "delayed"],
-      0,
-      49,
-      true
+    const [rows] = await pool.execute(
+      `SELECT * FROM deliveries
+       ORDER BY created_at DESC
+       LIMIT 50`
     );
 
     const deliveries = await Promise.all(
-      jobs.map(async (job) => ({
-        id: job.id,
-        pickup: job.data.pickup,
-        dropoff: job.data.dropoff,
-        priority: job.data.priority,
-        status: await job.getState(),
-        progress: job.progress || null,
-        result: job.returnvalue || null,
-        failedReason: job.failedReason || null,
-        createdAt: new Date(job.timestamp).toISOString(),
-      }))
+      rows.map(async (delivery) => {
+        const job = await deliveryQueue.getJob(
+          `delivery-${delivery.id}`
+        );
+
+        return {
+          ...delivery,
+          jobId: job?.id || null,
+          queueStatus: job ? await job.getState() : null,
+          progress: job?.progress || null,
+          result: job?.returnvalue || null,
+          failedReason: job?.failedReason || null,
+        };
+      })
     );
 
     return res.json({
@@ -89,6 +115,7 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Get deliveries error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Could not retrieve deliveries",
@@ -113,7 +140,6 @@ router.get("/analytics/summary", async (req, res) => {
       deliveryQueue.getDelayedCount(),
     ]);
 
-    // Read retained jobs so processing times can be calculated.
     const jobs = await deliveryQueue.getJobs(
       ["completed", "failed"],
       0,
@@ -137,7 +163,9 @@ router.get("/analytics/summary", async (req, res) => {
 
     const successRate =
       totalFinished > 0
-        ? Number(((successfulCount / totalFinished) * 100).toFixed(1))
+        ? Number(
+            ((successfulCount / totalFinished) * 100).toFixed(1)
+          )
         : 0;
 
     const processingTimes = successfulJobs
@@ -170,6 +198,7 @@ router.get("/analytics/summary", async (req, res) => {
     });
   } catch (error) {
     console.error("Delivery analytics error:", error.stack || error);
+
     return res.status(500).json({
       success: false,
       message: "Could not retrieve delivery analytics",
@@ -177,34 +206,50 @@ router.get("/analytics/summary", async (req, res) => {
   }
 });
 
-// Get one delivery by job ID
+// Get one delivery by MySQL ID
 router.get("/:id", async (req, res) => {
   try {
-    const job = await deliveryQueue.getJob(req.params.id);
+    const deliveryId = Number(req.params.id);
 
-    if (!job) {
-      return res.status(404).json({
+    if (!Number.isInteger(deliveryId) || deliveryId <= 0) {
+      return res.status(400).json({
         success: false,
-        message: "Delivery job not found",
+        message: "Invalid delivery ID",
       });
     }
+
+    const [rows] = await pool.execute(
+      "SELECT * FROM deliveries WHERE id = ?",
+      [deliveryId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery not found",
+      });
+    }
+
+    const delivery = rows[0];
+
+    const job = await deliveryQueue.getJob(
+      `delivery-${deliveryId}`
+    );
 
     return res.json({
       success: true,
       delivery: {
-        id: job.id,
-        pickup: job.data.pickup,
-        dropoff: job.data.dropoff,
-        priority: job.data.priority,
-        status: await job.getState(),
-        progress: job.progress || null,
-        result: job.returnvalue || null,
-        failedReason: job.failedReason || null,
-        createdAt: new Date(job.timestamp).toISOString(),
+        ...delivery,
+        jobId: job?.id || null,
+        queueStatus: job ? await job.getState() : null,
+        progress: job?.progress || null,
+        result: job?.returnvalue || null,
+        failedReason: job?.failedReason || null,
       },
     });
   } catch (error) {
     console.error("Get delivery error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Could not retrieve delivery",

@@ -1,5 +1,7 @@
+
 const Redis = require("ioredis");
 const initialDrivers = require("./drivers");
+const pool = require("../config/db");
 
 const redisUrl =
   process.env.REDIS_URL || "redis://127.0.0.1:6379";
@@ -23,7 +25,10 @@ async function ensureInitialized() {
       const existing = await redis.get(DRIVERS_KEY);
 
       if (!existing) {
-        await redis.set(DRIVERS_KEY, JSON.stringify(initialDrivers));
+        await redis.set(
+          DRIVERS_KEY,
+          JSON.stringify(initialDrivers)
+        );
       }
     })().catch((error) => {
       initialization = null;
@@ -43,7 +48,6 @@ async function getDrivers() {
 async function assignDriver() {
   await ensureInitialized();
 
-  // One worker currently processes jobs at a time.
   const drivers = await getDrivers();
 
   const available = drivers
@@ -61,7 +65,15 @@ async function assignDriver() {
   const driver = available[0];
   driver.status = "busy";
 
-  await redis.set(DRIVERS_KEY, JSON.stringify(drivers));
+  await redis.set(
+    DRIVERS_KEY,
+    JSON.stringify(drivers)
+  );
+
+  await pool.execute(
+    "UPDATE drivers SET status = 'busy' WHERE id = ?",
+    [driver.id]
+  );
 
   return { ...driver };
 }
@@ -70,7 +82,10 @@ async function releaseDriver(driverId, delivered = false) {
   await ensureInitialized();
 
   const drivers = await getDrivers();
-  const driver = drivers.find((item) => item.id === driverId);
+
+  const driver = drivers.find(
+    (item) => item.id === driverId
+  );
 
   if (!driver) return;
 
@@ -80,7 +95,18 @@ async function releaseDriver(driverId, delivered = false) {
     driver.deliveriesCompleted += 1;
   }
 
-  await redis.set(DRIVERS_KEY, JSON.stringify(drivers));
+  await redis.set(
+    DRIVERS_KEY,
+    JSON.stringify(drivers)
+  );
+
+  await pool.execute(
+    `UPDATE drivers
+     SET status = 'available',
+         deliveries_completed = deliveries_completed + ?
+     WHERE id = ?`,
+    [delivered ? 1 : 0, driverId]
+  );
 }
 
 module.exports = {

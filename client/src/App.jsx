@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 
-const API = "https://dispatchflow-as2e.onrender.com";
+const API = import.meta.env.VITE_API_URL || "https://dispatchflow-as2e.onrender.com";
 
 const emptyAnalytics = {
   waiting: 0,
@@ -78,7 +78,125 @@ function formatDuration(milliseconds) {
     : `${seconds.toFixed(1)}s`;
 }
 
-function CreateDelivery({ onCreated }) {
+function AuthScreen({ onAuthenticated }) {
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage("");
+
+    try {
+      if (mode === "register") {
+        const registerResponse = await fetch(`${API}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        const registerData = await registerResponse.json();
+
+        if (!registerResponse.ok || !registerData.success) {
+          throw new Error(registerData.message || "Registration failed.");
+        }
+      }
+
+      const response = await fetch(`${API}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.token) {
+        throw new Error(data.message || "Login failed.");
+      }
+
+      onAuthenticated(data.token, data.user);
+    } catch (err) {
+      setMessage(err.message || "Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-screen">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <div className="auth-brand">
+          <Truck size={28} />
+          <h1>DispatchFlow</h1>
+          <p>Delivery Operations Platform</p>
+        </div>
+
+        <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
+        <p className="auth-description">
+          {mode === "login"
+            ? "Sign in to manage your delivery operations."
+            : "Register to access your DispatchFlow dashboard."}
+        </p>
+
+        {mode === "register" && (
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        )}
+
+        <input
+          type="email"
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
+          required
+        />
+
+        {message && <p className="auth-error">{message}</p>}
+
+        <button type="submit" disabled={submitting}>
+          {submitting
+            ? "Please wait..."
+            : mode === "login"
+              ? "Sign In"
+              : "Create Account"}
+        </button>
+
+        <p className="auth-switch">
+          {mode === "login" ? "New to DispatchFlow?" : "Already have an account?"}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "login" ? "register" : "login");
+              setMessage("");
+            }}
+          >
+            {mode === "login" ? "Register" : "Sign In"}
+          </button>
+        </p>
+      </form>
+    </main>
+  );
+}
+
+function CreateDelivery({ onCreated, token }) {
   const [pickup, setPickup] = useState("VIT-AP Campus");
   const [dropoff, setDropoff] = useState("Namburu");
   const [priority, setPriority] = useState("normal");
@@ -95,7 +213,10 @@ function CreateDelivery({ onCreated }) {
     try {
       const response = await fetch(`${API}/api/deliveries`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ pickup, dropoff, priority }),
       });
 
@@ -375,6 +496,36 @@ function DeliveryDetails({
 }
 
 function App() {
+  const [token, setToken] = useState(
+    () => sessionStorage.getItem("dispatchflow_token") || ""
+  );
+
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("dispatchflow_user") || "null");
+    } catch {
+      return null;
+    }
+  });
+
+  function handleAuthenticated(newToken, userData) {
+    sessionStorage.setItem("dispatchflow_token", newToken);
+    sessionStorage.setItem("dispatchflow_user", JSON.stringify(userData));
+    setToken(newToken);
+    setUser(userData);
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem("dispatchflow_token");
+    sessionStorage.removeItem("dispatchflow_user");
+    setToken("");
+    setUser(null);
+    setDeliveries([]);
+    setDrivers([]);
+    setSelectedDelivery(null);
+    setAnalytics(emptyAnalytics);
+    setError("");
+  }
   const [activePage, setActivePage] = useState("overview");
   const [deliveries, setDeliveries] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -394,10 +545,26 @@ function App() {
     try {
       const [deliveryResponse, driverResponse, analyticsResponse] =
         await Promise.all([
-          fetch(`${API}/api/deliveries`),
-          fetch(`${API}/api/drivers`),
-          fetch(`${API}/api/deliveries/analytics/summary`),
+          fetch(`${API}/api/deliveries`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API}/api/drivers`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API}/api/deliveries/analytics/summary`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
+
+      if (
+        deliveryResponse.status === 401 ||
+        driverResponse.status === 401 ||
+        analyticsResponse.status === 401
+      ) {
+        handleLogout();
+        setError("Your session has expired. Please sign in again.");
+        return;
+      }
 
       if (
         !deliveryResponse.ok ||
@@ -446,7 +613,15 @@ function App() {
     setDetailLoading(true);
 
     try {
-      const response = await fetch(`${API}/api/deliveries/${id}`);
+      const response = await fetch(`${API}/api/deliveries/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 401) {
+        handleLogout();
+        setDetailError("Your session has expired. Please sign in again.");
+        return;
+      }
       const data = await response.json();
 
       if (!response.ok || !data.success || !data.delivery) {
@@ -463,10 +638,15 @@ function App() {
   }
 
   useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     loadDashboard();
     const interval = setInterval(loadDashboard, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   const totalDeliveries =
     analytics.waiting +
@@ -474,6 +654,10 @@ function App() {
     analytics.completed +
     analytics.failed +
     analytics.delayed;
+
+  if (!token) {
+    return <AuthScreen onAuthenticated={handleAuthenticated} />;
+  }
 
   return (
     <main className="app-shell">
@@ -500,6 +684,13 @@ function App() {
         </button>
 
         <div className="sidebar-bottom">
+          <div className="account-panel">
+            <div className="account-label">SIGNED IN AS</div>
+            <strong>{user?.name || user?.email || "DispatchFlow user"}</strong>
+            <button type="button" onClick={handleLogout}>
+              Sign out
+            </button>
+          </div>
           <div className="system-indicator">
             <span /> System monitor
           </div>
@@ -639,7 +830,7 @@ function App() {
 
         {activePage === "overview" && (
           <>
-            <CreateDelivery onCreated={loadDashboard} />
+            <CreateDelivery onCreated={loadDashboard} token={token} />
             <DispatchMap deliveries={deliveries} drivers={drivers} />
           </>
         )}
