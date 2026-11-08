@@ -69,6 +69,19 @@ function formatTime(value) {
   });
 }
 
+function getLocalDateKey(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function formatDuration(milliseconds) {
   if (!milliseconds) return "—";
 
@@ -543,6 +556,8 @@ const [drivers, setDrivers] = useState([]);
   const [deliverySearch, setDeliverySearch] = useState("");
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState("");
   const [deliveryPriorityFilter, setDeliveryPriorityFilter] = useState("");
+  const [deliveryStartDate, setDeliveryStartDate] = useState("");
+  const [deliveryEndDate, setDeliveryEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageLimit = 10;
 
@@ -671,7 +686,23 @@ const [drivers, setDrivers] = useState([]);
     const matchesPriority =
       !deliveryPriorityFilter || delivery.priority === deliveryPriorityFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    const createdDate = getLocalDateKey(
+      delivery.createdAt || delivery.created_at
+    );
+
+    const matchesStartDate =
+      !deliveryStartDate || (createdDate && createdDate >= deliveryStartDate);
+
+    const matchesEndDate =
+      !deliveryEndDate || (createdDate && createdDate <= deliveryEndDate);
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesPriority &&
+      matchesStartDate &&
+      matchesEndDate
+    );
   });
 
   const filteredDeliveryCount = filteredDeliveries.length;
@@ -1049,6 +1080,32 @@ const [drivers, setDrivers] = useState([]);
                   <option value="normal">Normal</option>
                   <option value="low">Low</option>
                 </select>
+
+                <input
+                  type="date"
+                  className="delivery-filter-select"
+                  aria-label="Filter from date"
+                  title="Start date"
+                  value={deliveryStartDate}
+                  max={deliveryEndDate || undefined}
+                  onChange={(event) => {
+                    setDeliveryStartDate(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+
+                <input
+                  type="date"
+                  className="delivery-filter-select"
+                  aria-label="Filter until date"
+                  title="End date"
+                  value={deliveryEndDate}
+                  min={deliveryStartDate || undefined}
+                  onChange={(event) => {
+                    setDeliveryEndDate(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
               </div>
 
               {loading ? (
@@ -1082,7 +1139,7 @@ const [drivers, setDrivers] = useState([]);
                           <td><div className="route-cell"><strong>{delivery.pickup}</strong><span>↓ {delivery.dropoff}</span></div></td>
                           <td><span className={`priority ${delivery.priority}`}>{delivery.priority}</span></td>
                           <td><span className={`status-badge ${delivery.status}`}>{formatStatus(delivery.status)}</span></td>
-                          <td className="time-cell">{formatTime(delivery.createdAt)}</td>
+                          <td className="time-cell">{formatTime(delivery.createdAt || delivery.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>

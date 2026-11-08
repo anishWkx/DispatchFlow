@@ -2007,3 +2007,19 @@ footer span {
     justify-content: space-between;
   }
 }
+
+
+/* Date-range filters */
+.delivery-toolbar {
+  grid-template-columns: minmax(180px, 1fr) repeat(4, minmax(110px, 150px));
+}
+
+@media (max-width: 700px) {
+  .delivery-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .delivery-search-input {
+    grid-column: 1 / -1;
+  }
+}
