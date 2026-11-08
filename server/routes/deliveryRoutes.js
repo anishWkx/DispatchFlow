@@ -135,16 +135,20 @@ router.get("/analytics/summary", async (req, res) => {
     const [
       waiting,
       active,
-      completedCount,
+      completedRows,
       failed,
       delayed,
     ] = await Promise.all([
       deliveryQueue.getWaitingCount(),
       deliveryQueue.getActiveCount(),
-      deliveryQueue.getCompletedCount(),
+      pool.execute(
+        "SELECT COUNT(*) AS total FROM deliveries WHERE status = 'delivered'"
+      ),
       deliveryQueue.getFailedCount(),
       deliveryQueue.getDelayedCount(),
     ]);
+
+    const completed = Number(completedRows[0][0].total) || 0;
 
     const jobs = await deliveryQueue.getJobs(
       ["completed", "failed"],
@@ -195,7 +199,7 @@ router.get("/analytics/summary", async (req, res) => {
       analytics: {
         waiting,
         active,
-        completed: completedCount,
+        completed,
         failed,
         delayed,
         successRate,
