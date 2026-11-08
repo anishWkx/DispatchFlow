@@ -10,3 +10,4 @@ backups/
 *.bak
 *.backup
 *.progress-backup
+*.backup*

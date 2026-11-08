@@ -4,7 +4,7 @@ const { assignDriver, releaseDriver } = require("../data/driverManager");
 const pool = require("../config/db");
 
 const worker = new Worker(
-  "delivery-jobs",
+  process.env.QUEUE_NAME || "delivery-jobs",
   async (job) => {
     console.log(`\n🚚 Processing delivery job #${job.id}`);
 
@@ -17,27 +17,13 @@ const worker = new Worker(
       console.log(`Pickup: ${pickup}`);
       console.log(`Dropoff: ${dropoff}`);
 
-      driver = await assignDriver();
+      driver = await assignDriver(deliveryId);
 
       if (!driver) {
         throw new Error("No drivers available");
       }
 
       console.log(`🛵 Assigned driver: ${driver.name}`);
-
-      await pool.execute(
-        `UPDATE deliveries
-         SET driver_id = ?, status = 'assigned'
-         WHERE id = ?`,
-        [driver.id, deliveryId]
-      );
-
-      await pool.execute(
-        `INSERT INTO delivery_assignments
-         (delivery_id, driver_id)
-         VALUES (?, ?)`,
-        [deliveryId, driver.id]
-      );
 
       await job.updateProgress({
         percentage: 20,
@@ -84,15 +70,6 @@ const worker = new Worker(
         [deliveryId]
       );
 
-      await pool.execute(
-        `UPDATE delivery_assignments
-         SET released_at = CURRENT_TIMESTAMP
-         WHERE delivery_id = ?
-           AND driver_id = ?
-           AND released_at IS NULL`,
-        [deliveryId, driver.id]
-      );
-
       delivered = true;
 
       await job.updateProgress({
@@ -120,24 +97,14 @@ const worker = new Worker(
         error.message
       );
 
-      // Only mark the delivery permanently failed after the final attempt.
-      await pool.execute(
-        `UPDATE deliveries
-         SET status = ?,
-             driver_id = NULL
-         WHERE id = ?`,
-        [willRetry ? "pending" : "failed", deliveryId]
-      );
-
-      // Close this attempt's driver assignment.
-      if (driver) {
+      // Do not reset a delivery rejected as already assigned/processed.
+      if (error.code !== "DELIVERY_NOT_PENDING") {
         await pool.execute(
-          `UPDATE delivery_assignments
-           SET released_at = CURRENT_TIMESTAMP
-           WHERE delivery_id = ?
-             AND driver_id = ?
-             AND released_at IS NULL`,
-          [deliveryId, driver.id]
+          `UPDATE deliveries
+           SET status = ?,
+               driver_id = NULL
+           WHERE id = ?`,
+          [willRetry ? "pending" : "failed", deliveryId]
         );
       }
 
@@ -154,13 +121,13 @@ const worker = new Worker(
       throw error;
     } finally {
       if (driver) {
-        await releaseDriver(driver.id, delivered);
+        await releaseDriver(driver.id, deliveryId, delivered);
       }
     }
   },
   {
     connection,
-    concurrency: 1,
+    concurrency: 3,
   }
 );
 
