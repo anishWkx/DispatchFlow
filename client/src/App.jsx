@@ -1092,9 +1092,7 @@ const [drivers, setDrivers] = useState([]);
                     setDeliveryStartDate(event.target.value);
                     setCurrentPage(1);
                   }}
-                />
-
-                <input
+                /><input
                   type="date"
                   className="delivery-filter-select"
                   aria-label="Filter until date"
@@ -1106,6 +1104,31 @@ const [drivers, setDrivers] = useState([]);
                     setCurrentPage(1);
                   }}
                 />
+
+
+                <button
+                  type="button"
+                  className="clear-filters-button"
+                  disabled={
+                    !deliverySearch &&
+                    !deliveryStatusFilter &&
+                    !deliveryPriorityFilter &&
+                    !deliveryStartDate &&
+                    !deliveryEndDate
+                  }
+                  onClick={() => {
+                    setDeliverySearch("");
+                    setDeliveryStatusFilter("");
+                    setDeliveryPriorityFilter("");
+                    setDeliveryStartDate("");
+                    setDeliveryEndDate("");
+                    setCurrentPage(1);
+                  }}
+                >
+                  Clear filters
+                </button>
+
+
               </div>
 
               {loading ? (

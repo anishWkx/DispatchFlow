@@ -2011,7 +2011,7 @@ footer span {
 
 /* Date-range filters */
 .delivery-toolbar {
-  grid-template-columns: minmax(180px, 1fr) repeat(4, minmax(110px, 150px));
+  grid-template-columns: minmax(180px, 1fr) repeat(5, minmax(110px, 150px));
 }
 
 @media (max-width: 700px) {
@@ -2021,5 +2021,67 @@ footer span {
 
   .delivery-search-input {
     grid-column: 1 / -1;
+  }
+}
+
+
+/* Clear delivery filters button */
+.clear-filters-button {
+  min-height: 40px;
+  padding: 0 14px;
+  color: #c5c9ff;
+  background: #252744;
+  border: 1px solid #494b7b;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.clear-filters-button:hover:not(:disabled) {
+  background: #33365c;
+  border-color: #7778ed;
+}
+
+.clear-filters-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Two-row delivery filter toolbar */
+.delivery-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 180px) minmax(140px, 180px);
+  gap: 12px;
+  align-items: center;
+}
+
+.delivery-search-input {
+  grid-column: 1 / -1;
+}
+
+.delivery-toolbar input[type="date"] {
+  grid-column: auto;
+}
+
+.clear-filters-button {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+@media (max-width: 700px) {
+  .delivery-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .delivery-search-input {
+    grid-column: 1 / -1;
+  }
+
+  .clear-filters-button {
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
 }
