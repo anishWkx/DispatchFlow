@@ -540,6 +540,12 @@ const [drivers, setDrivers] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
 
+  const [deliverySearch, setDeliverySearch] = useState("");
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState("");
+  const [deliveryPriorityFilter, setDeliveryPriorityFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageLimit = 10;
+
   async function loadDashboard() {
     setRefreshing(true);
 
@@ -649,6 +655,32 @@ const [drivers, setDrivers] = useState([]);
     const interval = setInterval(loadDashboard, 5000);
     return () => clearInterval(interval);
   }, [token]);
+
+  const filteredDeliveries = deliveries.filter((delivery) => {
+    const search = deliverySearch.trim().toLowerCase();
+
+    const matchesSearch =
+      !search ||
+      String(delivery.id).toLowerCase().includes(search) ||
+      String(delivery.pickup || "").toLowerCase().includes(search) ||
+      String(delivery.dropoff || "").toLowerCase().includes(search);
+
+    const matchesStatus =
+      !deliveryStatusFilter || delivery.status === deliveryStatusFilter;
+
+    const matchesPriority =
+      !deliveryPriorityFilter || delivery.priority === deliveryPriorityFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  const filteredDeliveryCount = filteredDeliveries.length;
+  const totalPages = Math.ceil(filteredDeliveryCount / pageLimit);
+
+  const paginatedDeliveries = filteredDeliveries.slice(
+    (currentPage - 1) * pageLimit,
+    currentPage * pageLimit
+  );
 
   const totalDeliveries = totalDeliveryCount;
 
@@ -969,12 +1001,60 @@ const [drivers, setDrivers] = useState([]);
                   <h3>All deliveries</h3>
                   <p>Select a job to view its details</p>
                 </div>
-                <span className="count-pill">{deliveries.length} jobs</span>
+                <span className="count-pill">{filteredDeliveryCount} jobs</span>
               </div>
+
+              <div className="delivery-toolbar">
+                <input
+                  type="search"
+                  className="delivery-search-input"
+                  placeholder="Search by job ID, pickup or drop-off..."
+                  aria-label="Search deliveries"
+                  value={deliverySearch}
+                  onChange={(event) => {
+                    setDeliverySearch(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+
+                <select
+                  className="delivery-filter-select"
+                  aria-label="Filter by status"
+                  value={deliveryStatusFilter}
+                  onChange={(event) => {
+                    setDeliveryStatusFilter(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="picked_up">Picked up</option>
+                  <option value="in_transit">In transit</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="failed">Failed</option>
+                </select>
+
+                <select
+                  className="delivery-filter-select"
+                  aria-label="Filter by priority"
+                  value={deliveryPriorityFilter}
+                  onChange={(event) => {
+                    setDeliveryPriorityFilter(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">All priorities</option>
+                  <option value="high">High</option>
+                  <option value="normal">Normal</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+
               {loading ? (
                 <p className="empty-state">Loading deliveries…</p>
-              ) : deliveries.length === 0 ? (
-                <p className="empty-state">No delivery jobs yet.</p>
+              ) : paginatedDeliveries.length === 0 ? (
+                <p className="empty-state">No deliveries match your search or filters.</p>
               ) : (
                 <div className="table-wrap">
                   <table>
@@ -984,7 +1064,7 @@ const [drivers, setDrivers] = useState([]);
                       </tr>
                     </thead>
                     <tbody>
-                      {deliveries.slice().reverse().map((delivery) => (
+                      {paginatedDeliveries.map((delivery) => (
                         <tr
                           key={delivery.id}
                           className={`delivery-table-row ${selectedDelivery?.id === delivery.id ? "is-selected" : ""}`}
@@ -1009,6 +1089,38 @@ const [drivers, setDrivers] = useState([]);
                   </table>
                 </div>
               )}
+
+              <div className="delivery-pagination">
+                <span className="delivery-results-count">
+                  {filteredDeliveryCount === 0
+                    ? "No results"
+                    : `Showing ${(currentPage - 1) * pageLimit + 1}–${Math.min(currentPage * pageLimit, filteredDeliveryCount)} of ${filteredDeliveryCount}`}
+                </span>
+
+                <div className="delivery-pagination-actions">
+                  <button
+                    type="button"
+                    className="pagination-button"
+                    disabled={currentPage <= 1 || loading}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  >
+                    Previous
+                  </button>
+
+                  <span className="delivery-page-number">
+                    Page {currentPage} of {Math.max(totalPages, 1)}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="pagination-button"
+                    disabled={totalPages === 0 || currentPage >= totalPages || loading}
+                    onClick={() => setCurrentPage((page) => page + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </article>
             <DeliveryDetails
               delivery={selectedDelivery}
