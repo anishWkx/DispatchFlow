@@ -85,6 +85,11 @@ router.post("/", async (req, res) => {
 // Get recent deliveries from MySQL
 router.get("/", async (req, res) => {
   try {
+    const [countRows] = await pool.execute(
+      "SELECT COUNT(*) AS total FROM deliveries"
+    );
+    const totalCount = Number(countRows[0].total);
+
     const [rows] = await pool.execute(
       `SELECT * FROM deliveries
        ORDER BY created_at DESC
@@ -111,6 +116,7 @@ router.get("/", async (req, res) => {
     return res.json({
       success: true,
       count: deliveries.length,
+      totalCount,
       deliveries,
     });
   } catch (error) {
