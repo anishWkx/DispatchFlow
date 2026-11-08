@@ -528,7 +528,8 @@ function App() {
   }
   const [activePage, setActivePage] = useState("overview");
   const [deliveries, setDeliveries] = useState([]);
-  const [drivers, setDrivers] = useState([]);
+  const [totalDeliveryCount, setTotalDeliveryCount] = useState(0);
+const [drivers, setDrivers] = useState([]);
   const [analytics, setAnalytics] = useState(emptyAnalytics);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -589,6 +590,7 @@ function App() {
       }
 
       setDeliveries(deliveryData.deliveries || []);
+      setTotalDeliveryCount(Number(deliveryData.totalCount) || 0);
       setDrivers(driverData.drivers || []);
       setAnalytics({
         ...emptyAnalytics,
@@ -648,12 +650,7 @@ function App() {
     return () => clearInterval(interval);
   }, [token]);
 
-  const totalDeliveries =
-    analytics.waiting +
-    analytics.active +
-    analytics.completed +
-    analytics.failed +
-    analytics.delayed;
+  const totalDeliveries = totalDeliveryCount;
 
   if (!token) {
     return <AuthScreen onAuthenticated={handleAuthenticated} />;
