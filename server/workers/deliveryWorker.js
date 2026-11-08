@@ -2,6 +2,7 @@ const { Worker } = require("bullmq");
 const { connection } = require("../queues/deliveryQueue");
 const { assignDriver, releaseDriver } = require("../data/driverManager");
 const pool = require("../config/db");
+const { emitDeliveryUpdate } = require("../realtime/socket");
 
 const worker = new Worker(
   process.env.QUEUE_NAME || "delivery-jobs",
@@ -25,6 +26,13 @@ const worker = new Worker(
 
       console.log(`🛵 Assigned driver: ${driver.name}`);
 
+      emitDeliveryUpdate({
+        deliveryId,
+        status: "assigned",
+        driverId: driver.id,
+        driverName: driver.name,
+      });
+
       await job.updateProgress({
         percentage: 20,
         stage: "Driver assigned",
@@ -39,6 +47,8 @@ const worker = new Worker(
         [deliveryId]
       );
 
+      emitDeliveryUpdate({ deliveryId, status: "picked_up" });
+
       await job.updateProgress({
         percentage: 45,
         stage: "Picked up",
@@ -52,6 +62,8 @@ const worker = new Worker(
         "UPDATE deliveries SET status = 'in_transit' WHERE id = ?",
         [deliveryId]
       );
+
+      emitDeliveryUpdate({ deliveryId, status: "in_transit" });
 
       await job.updateProgress({
         percentage: 75,
@@ -71,6 +83,13 @@ const worker = new Worker(
       );
 
       delivered = true;
+
+      emitDeliveryUpdate({
+        deliveryId,
+        status: "delivered",
+        driverId: driver.id,
+        driverName: driver.name,
+      });
 
       await job.updateProgress({
         percentage: 100,
@@ -106,6 +125,12 @@ const worker = new Worker(
            WHERE id = ?`,
           [willRetry ? "pending" : "failed", deliveryId]
         );
+
+        emitDeliveryUpdate({
+          deliveryId,
+          status: willRetry ? "pending" : "failed",
+          failureReason: error.message,
+        });
       }
 
       if (willRetry) {
@@ -122,6 +147,11 @@ const worker = new Worker(
     } finally {
       if (driver) {
         await releaseDriver(driver.id, deliveryId, delivered);
+        emitDeliveryUpdate({
+          deliveryId,
+          status: delivered ? "delivered" : "driver_released",
+          driverId: driver.id,
+        });
       }
     }
   },

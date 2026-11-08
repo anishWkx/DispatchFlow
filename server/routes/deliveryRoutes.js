@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { deliveryQueue } = require("../queues/deliveryQueue");
 const pool = require("../config/db");
+const { emitDeliveryUpdate } = require("../realtime/socket");
 
 const priorityMap = {
   high: 1,
@@ -64,6 +65,14 @@ router.post("/", async (req, res) => {
 
       throw queueError;
     }
+
+    emitDeliveryUpdate({
+      deliveryId,
+      status: "pending",
+      pickup,
+      dropoff,
+      priority,
+    });
 
     return res.status(201).json({
       success: true,

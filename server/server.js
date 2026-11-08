@@ -1,8 +1,7 @@
 
 const express = require("express");
 const cors = require("cors");
-
-require("./workers/deliveryWorker");
+const http = require("http");
 
 const authRoutes = require("./routes/authRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
@@ -11,6 +10,8 @@ const driverRoutes = require("./routes/driverRoutes");
 const {
   authenticateToken,
 } = require("./middleware/authMiddleware");
+
+const { initializeSocket } = require("./realtime/socket");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -51,8 +52,16 @@ app.use(
   driverRoutes
 );
 
+// Create HTTP server and attach Socket.IO
+const httpServer = http.createServer(app);
+
+initializeSocket(httpServer);
+
+// Start the delivery worker after Socket.IO initialization
+require("./workers/deliveryWorker");
+
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(
     `DispatchFlow server running at http://localhost:${PORT}`
   );

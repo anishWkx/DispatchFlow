@@ -1,6 +1,7 @@
 
 import DispatchMap from "./dispatchMap.jsx";
 import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 import {
   Activity,
   Bike,
@@ -518,7 +519,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem("dispatchflow-theme", theme);
   }, [theme]);
-
   const [token, setToken] = useState(
     () => sessionStorage.getItem("dispatchflow_token") || ""
   );
@@ -677,9 +677,35 @@ const [drivers, setDrivers] = useState([]);
     }
 
     loadDashboard();
-    const interval = setInterval(loadDashboard, 5000);
-    return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+  if (!token) return;
+
+  const socket = io(API, {
+    auth: {
+      token,
+    },
+    reconnection: true,
+  });
+
+  socket.on("connect", () => {
+    console.log("DispatchFlow live connection established");
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("Socket connection error:", error.message);
+  });
+
+  socket.on("delivery:update", () => {
+    loadDashboard();
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [token]);
+
 
   const exportFilteredDeliveries = () => {
     if (filteredDeliveries.length === 0) return;
