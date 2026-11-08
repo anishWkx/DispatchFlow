@@ -17,6 +17,8 @@ import {
   X,
   UserRound,
   CalendarClock,
+  Sun,
+  Moon,
 } from "lucide-react";
 import "./App.css";
 
@@ -509,6 +511,14 @@ function DeliveryDetails({
 }
 
 function App() {
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("dispatchflow-theme") || "dark"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("dispatchflow-theme", theme);
+  }, [theme]);
+
   const [token, setToken] = useState(
     () => sessionStorage.getItem("dispatchflow_token") || ""
   );
@@ -671,6 +681,44 @@ const [drivers, setDrivers] = useState([]);
     return () => clearInterval(interval);
   }, [token]);
 
+  const exportFilteredDeliveries = () => {
+    if (filteredDeliveries.length === 0) return;
+
+    const headers = ["Job ID", "Pickup", "Drop-off", "Priority", "Status", "Created At"];
+
+    const escapeCsv = (value) => {
+      let text = value == null ? "" : String(value);
+      if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const rows = filteredDeliveries.map((delivery) => [
+      delivery.id,
+      delivery.pickup,
+      delivery.dropoff,
+      delivery.priority,
+      formatStatus(delivery.status),
+      delivery.createdAt || delivery.created_at,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsv).join(","))
+      .join("\r\n");
+
+    const blob = new Blob(["\uFEFF", csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `dispatchflow-deliveries-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const filteredDeliveries = deliveries.filter((delivery) => {
     const search = deliverySearch.trim().toLowerCase();
 
@@ -720,7 +768,7 @@ const [drivers, setDrivers] = useState([]);
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${theme === "light" ? "light-theme" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
@@ -779,17 +827,30 @@ const [drivers, setDrivers] = useState([]);
             </p>
           </div>
 
-          <button
-            className="refresh-button"
-            onClick={loadDashboard}
-            disabled={refreshing}
-          >
-            <RefreshCw
-              size={16}
-              className={refreshing ? "refresh-spinning" : ""}
-            />
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+            </button>
+
+            <button
+              className="refresh-button"
+              onClick={loadDashboard}
+              disabled={refreshing}
+            >
+              <RefreshCw
+                size={16}
+                className={refreshing ? "refresh-spinning" : ""}
+              />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </header>
 
         {error && <div className="error-banner">{error}</div>}
@@ -1128,6 +1189,15 @@ const [drivers, setDrivers] = useState([]);
                   Clear filters
                 </button>
 
+                <button
+                  type="button"
+                  className="export-csv-button"
+                  onClick={exportFilteredDeliveries}
+                  disabled={loading || filteredDeliveryCount === 0}
+                  title="Export all deliveries matching the current filters"
+                >
+                  Export CSV ({filteredDeliveryCount})
+                </button>
 
               </div>
 
