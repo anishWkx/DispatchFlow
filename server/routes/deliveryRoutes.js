@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 const { deliveryQueue } = require("../queues/deliveryQueue");
@@ -33,7 +32,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Save delivery in MySQL
     const [insertResult] = await pool.execute(
       `INSERT INTO deliveries (pickup, dropoff, priority, status)
        VALUES (?, ?, ?, 'pending')`,
@@ -42,7 +40,6 @@ router.post("/", async (req, res) => {
 
     deliveryId = insertResult.insertId;
 
-    // Add delivery to BullMQ
     let job;
 
     try {
@@ -138,7 +135,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Delivery analytics summary
+// Existing delivery queue analytics
 router.get("/analytics/summary", async (req, res) => {
   try {
     const [
@@ -225,6 +222,153 @@ router.get("/analytics/summary", async (req, res) => {
   }
 });
 
+// ML ETA prediction performance against simulated durations
+router.get("/analytics/eta", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT
+         d.id AS deliveryId,
+         d.pickup,
+         d.dropoff,
+         dr.name AS driverName,
+         a.predicted_eta_seconds AS predictedEtaSeconds,
+
+         ROUND(
+           (a.driver_to_pickup_km / dr.avg_speed_kmph) * 3600
+           + dr.pickup_delay_seconds
+           + (a.pickup_to_dropoff_km / dr.avg_speed_kmph)
+             * 3600 * a.traffic_multiplier
+         ) AS baselineEtaSeconds,
+
+         (
+           a.simulated_pickup_seconds + a.simulated_travel_seconds
+         ) AS simulatedEtaSeconds,
+
+         a.delivered_at AS deliveredAt
+
+       FROM delivery_assignments a
+       INNER JOIN deliveries d ON d.id = a.delivery_id
+       INNER JOIN drivers dr ON dr.id = a.driver_id
+
+       WHERE d.status = 'delivered'
+         AND a.delivered_at IS NOT NULL
+         AND a.predicted_eta_seconds IS NOT NULL
+         AND a.simulated_pickup_seconds IS NOT NULL
+         AND a.simulated_travel_seconds IS NOT NULL
+         AND dr.avg_speed_kmph > 0
+
+       ORDER BY a.delivered_at DESC`
+    );
+
+    const comparisons = rows.map((row) => {
+      const predicted = Number(row.predictedEtaSeconds);
+      const baseline = Number(row.baselineEtaSeconds);
+      const simulated = Number(row.simulatedEtaSeconds);
+
+      return {
+        ...row,
+        deliveryId: Number(row.deliveryId),
+        predictedEtaSeconds: predicted,
+        baselineEtaSeconds: baseline,
+        simulatedEtaSeconds: simulated,
+        mlAbsoluteErrorSeconds: Math.abs(simulated - predicted),
+        mlSignedErrorSeconds: simulated - predicted,
+        baselineAbsoluteErrorSeconds: Math.abs(simulated - baseline),
+        baselineSignedErrorSeconds: simulated - baseline,
+      };
+    });
+
+    const count = comparisons.length;
+
+    function calculateMetrics(predictionKey, absoluteErrorKey, signedErrorKey) {
+      if (count === 0) {
+        return {
+          maeSeconds: null,
+          rmseSeconds: null,
+          averageSignedErrorSeconds: null,
+        };
+      }
+
+      const absoluteErrors = comparisons.map(
+        (row) => row[absoluteErrorKey]
+      );
+
+      const signedErrors = comparisons.map(
+        (row) => row[signedErrorKey]
+      );
+
+      const mae =
+        absoluteErrors.reduce((sum, value) => sum + value, 0) / count;
+
+      const mse =
+        absoluteErrors.reduce((sum, value) => sum + value * value, 0) / count;
+
+      const signedMean =
+        signedErrors.reduce((sum, value) => sum + value, 0) / count;
+
+      return {
+        maeSeconds: Number(mae.toFixed(2)),
+        rmseSeconds: Number(Math.sqrt(mse).toFixed(2)),
+        averageSignedErrorSeconds: Number(signedMean.toFixed(2)),
+      };
+    }
+
+    const mlMetrics = calculateMetrics(
+      "predictedEtaSeconds",
+      "mlAbsoluteErrorSeconds",
+      "mlSignedErrorSeconds"
+    );
+
+    const baselineMetrics = calculateMetrics(
+      "baselineEtaSeconds",
+      "baselineAbsoluteErrorSeconds",
+      "baselineSignedErrorSeconds"
+    );
+
+    const improvementPercentage =
+      count > 0 && baselineMetrics.maeSeconds > 0
+        ? Number(
+            (
+              ((baselineMetrics.maeSeconds - mlMetrics.maeSeconds) /
+                baselineMetrics.maeSeconds) *
+              100
+            ).toFixed(2)
+          )
+        : null;
+
+    return res.json({
+      success: true,
+      metricType: "simulated_eta_model_vs_baseline",
+
+      analytics: {
+        evaluatedDeliveries: count,
+        mlModel: mlMetrics,
+        formulaBaseline: baselineMetrics,
+        maeImprovementPercentage: improvementPercentage,
+      },
+
+      interpretation: {
+        mae: "Mean absolute difference between predicted and simulated ETA.",
+        rmse: "Root mean squared prediction error. Lower is better.",
+        signedError: "Positive means underestimation; negative means overestimation.",
+        improvementPercentage:
+          "Positive means the ML model has lower MAE than the formula baseline. Negative means the baseline performs better.",
+        limitation:
+          "Evaluation uses synthetic simulation data and is not evidence of real-world ETA accuracy.",
+      },
+
+      comparisons: comparisons.slice(0, 20),
+    });
+  } catch (error) {
+    console.error("ETA analytics error:", error.stack || error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not retrieve ETA performance analytics",
+    });
+  }
+});
+
 // Get one delivery by MySQL ID
 router.get("/:id", async (req, res) => {
   try {
@@ -251,6 +395,21 @@ router.get("/:id", async (req, res) => {
 
     const delivery = rows[0];
 
+    const [assignmentRows] = await pool.execute(
+      `SELECT
+         assigned_at AS assignedAt,
+         picked_up_at AS pickedUpAt,
+         in_transit_at AS inTransitAt,
+         delivered_at AS deliveredAt
+       FROM delivery_assignments
+       WHERE delivery_id = ?
+       ORDER BY id DESC
+       LIMIT 1`,
+      [deliveryId]
+    );
+
+    const timeline = assignmentRows[0] || {};
+
     const job = await deliveryQueue.getJob(
       `delivery-${deliveryId}`
     );
@@ -259,6 +418,7 @@ router.get("/:id", async (req, res) => {
       success: true,
       delivery: {
         ...delivery,
+        timeline,
         jobId: job?.id || null,
         queueStatus: job ? await job.getState() : null,
         progress: job?.progress || null,

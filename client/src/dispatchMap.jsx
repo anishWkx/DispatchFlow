@@ -10,12 +10,9 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./DispatchMap.css";
+import locationConfig from "../../shared/locations.json";
 
-const locations = [
-  { name: "VIT-AP Campus", coords: [16.4968, 80.5005] },
-  { name: "Namburu", coords: [16.3505, 80.5505] },
-  { name: "Mangalagiri", coords: [16.4305, 80.5685] },
-];
+const locations = locationConfig.locations;
 
 // Slightly offset demo truck markers so they remain visually distinct
 // from each other and from pickup/drop-off markers.

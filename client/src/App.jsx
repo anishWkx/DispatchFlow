@@ -22,6 +22,7 @@ import {
   Moon,
 } from "lucide-react";
 import "./App.css";
+import locationConfig from "../../shared/locations.json";
 
 const API = import.meta.env.VITE_API_URL || "https://dispatchflow-as2e.onrender.com";
 
@@ -49,10 +50,19 @@ function formatStatus(status) {
 }
 
 function getProgress(delivery) {
-  if (delivery.status === "completed") return 100;
-  if (delivery.status === "failed") return Number(delivery.progress) || 0;
+  if (!delivery) return 0;
 
-  const progress = Number(delivery.progress);
+  if (["completed", "delivered"].includes(delivery.status)) {
+    return 100;
+  }
+
+  const progressValue =
+    delivery.progress && typeof delivery.progress === "object"
+      ? delivery.progress.percentage
+      : delivery.progress;
+
+  const progress = Number(progressValue);
+
   return Number.isFinite(progress)
     ? Math.min(100, Math.max(0, progress))
     : 0;
@@ -265,24 +275,32 @@ function CreateDelivery({ onCreated, token }) {
       <form className="delivery-form" onSubmit={handleSubmit}>
         <label>
           Pickup location
-          <input
+          <select
             value={pickup}
             onChange={(event) => setPickup(event.target.value)}
             required
-            maxLength={100}
-            placeholder="Enter pickup location"
-          />
+          >
+            {locationConfig.locations.map((location) => (
+              <option key={location.name} value={location.name}>
+                {location.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
           Drop-off location
-          <input
+          <select
             value={dropoff}
             onChange={(event) => setDropoff(event.target.value)}
             required
-            maxLength={100}
-            placeholder="Enter drop-off location"
-          />
+          >
+            {locationConfig.locations.map((location) => (
+              <option key={location.name} value={location.name}>
+                {location.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
@@ -382,7 +400,32 @@ function DeliveryDetails({
   const driverName =
     delivery.result?.driverName ||
     delivery.result?.driver?.name ||
+    delivery.progress?.driverRecommendations?.[0]?.driverName ||
     "Not assigned yet";
+
+  const driverRecommendations =
+    delivery.result?.driverRecommendations ||
+    delivery.progress?.driverRecommendations ||
+    [];
+
+  const timeline = delivery.timeline || {};
+
+  const currentStageRank = {
+    pending: 0,
+    waiting: 0,
+    assigned: 1,
+    picked_up: 2,
+    in_transit: 3,
+    delivered: 4,
+    completed: 4,
+  }[delivery.status] ?? 0;
+
+  const timelineStages = [
+    { label: "Driver assigned", timestamp: timeline.assignedAt, rank: 1 },
+    { label: "Order picked up", timestamp: timeline.pickedUpAt, rank: 2 },
+    { label: "In transit", timestamp: timeline.inTransitAt, rank: 3 },
+    { label: "Delivered", timestamp: timeline.deliveredAt, rank: 4 },
+  ];
 
   return (
     <article className="panel delivery-details-panel">
@@ -413,55 +456,53 @@ function DeliveryDetails({
         </span>
       </div>
 
-      <div className="details-route">
-        <div className="details-route-point">
-          <span className="route-marker pickup-marker" />
-          <div>
-            <span>FROM</span>
-            <strong>{delivery.pickup || "Unknown location"}</strong>
-          </div>
+      <div className="delivery-timeline">
+        <div className="delivery-timeline-heading">
+          <h4>Delivery timeline</h4>
+          <span>LIVE TRACKING</span>
         </div>
 
-        <div className="details-route-connector" />
+        <div className="delivery-timeline-list">
+          {timelineStages.map((stage) => {
+            const completed =
+              Boolean(stage.timestamp) ||
+              currentStageRank > stage.rank;
 
-        <div className="details-route-point">
-          <span className="route-marker dropoff-marker" />
-          <div>
-            <span>TO</span>
-            <strong>{delivery.dropoff || "Unknown location"}</strong>
-          </div>
-        </div>
-      </div>
+            const active =
+              !completed &&
+              currentStageRank === stage.rank;
 
-      <div className="details-progress-section">
-        <div className="details-progress-label">
-          <span>Delivery progress</span>
-          <strong>{progress}%</strong>
+            return (
+              <div
+                className={`delivery-timeline-item ${
+                  completed ? "is-completed" : active ? "is-active" : ""
+                }`}
+                key={stage.rank}
+              >
+                <div className="delivery-timeline-marker">
+                  {completed ? <CheckCircle2 size={16} /> : null}
+                </div>
+
+                <div className="delivery-timeline-content">
+                  <strong>{stage.label}</strong>
+                  <span>
+                    {stage.timestamp
+                      ? formatTime(stage.timestamp)
+                      : completed
+                        ? "Completed"
+                        : active
+                          ? "In progress"
+                          : "Waiting"}
+                  </span>
+                </div>
+
+                <span className="delivery-timeline-state">
+                  {completed ? "Done" : active ? "Active" : "Pending"}
+                </span>
+              </div>
+            );
+          })}
         </div>
-        <div
-          className="details-progress-track"
-          role="progressbar"
-          aria-label="Delivery progress"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-        >
-          <div
-            className={`details-progress-fill ${
-              delivery.status === "completed" ? "is-complete" : ""
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <span className="details-progress-caption">
-          {delivery.status === "completed"
-            ? "Delivery completed successfully"
-            : delivery.status === "failed"
-              ? "This delivery failed"
-              : delivery.status === "active"
-                ? "Your job is being processed"
-                : "Waiting for worker assignment"}
-        </span>
       </div>
 
       <div className="details-info-list">
@@ -498,6 +539,89 @@ function DeliveryDetails({
         )}
       </div>
 
+      {driverRecommendations.length > 0 && (
+        <div className="smart-recommendation-panel">
+          <div className="smart-recommendation-heading">
+            <div>
+              <span className="details-eyebrow">ML-POWERED SELECTION</span>
+              <h4>Smart driver recommendation</h4>
+            </div>
+            <span className="smart-recommendation-count">
+              {driverRecommendations.length} candidates
+            </span>
+          </div>
+
+          <div className="smart-recommendation-list">
+            {driverRecommendations.map((candidate) => (
+              <div
+                className={`smart-recommendation-item ${
+                  candidate.rank === 1 ? "is-recommended" : ""
+                }`}
+                key={candidate.driverId}
+              >
+                <div className="smart-recommendation-rank">
+                  {candidate.rank === 1 ? "★" : `#${candidate.rank}`}
+                </div>
+
+                <div className="smart-recommendation-driver">
+                  <strong>{candidate.driverName}</strong>
+                  <span>
+                    {candidate.rank === 1
+                      ? "Lowest predicted ETA"
+                      : `${Number(candidate.differenceFromBestSeconds / 60).toFixed(1)} min slower`}
+                  </span>
+                </div>
+
+                <div className="smart-recommendation-eta">
+                  <strong>
+                    {Number(candidate.predictedEtaMinutes).toFixed(1)} min
+                  </strong>
+                  {candidate.rank === 1 && (
+                    <span>Recommended</span>
+                  )}
+                </div>
+
+                <div className="smart-driver-factors">
+                  <div className="smart-driver-factors-heading">
+                    <strong>Why this ranking?</strong>
+                    <span>ETA model inputs</span>
+                  </div>
+
+                  <div className="smart-driver-factor-grid">
+                    <div>
+                      <span>Average speed</span>
+                      <strong>{Number(candidate.avgSpeedKmph).toFixed(1)} km/h</strong>
+                    </div>
+                    <div>
+                      <span>Pickup delay</span>
+                      <strong>{Number(candidate.pickupDelaySeconds).toFixed(0)} sec</strong>
+                    </div>
+                    <div>
+                      <span>Driver → pickup</span>
+                      <strong>{Number(candidate.driverToPickupKm).toFixed(2)} km</strong>
+                    </div>
+                    <div>
+                      <span>Pickup → destination</span>
+                      <strong>{Number(candidate.pickupToDropoffKm).toFixed(2)} km</strong>
+                    </div>
+                    <div>
+                      <span>Traffic multiplier</span>
+                      <strong>{Number(candidate.trafficMultiplier).toFixed(2)}×</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="smart-recommendation-note">
+            Ranked by predicted ETA among available drivers using the same
+            traffic assumption. Predictions are estimates, not guaranteed
+            arrival times.
+          </p>
+        </div>
+      )}
+
       {delivery.failedReason && (
         <div className="details-failure">
           <AlertTriangle size={16} />
@@ -508,6 +632,686 @@ function DeliveryDetails({
         </div>
       )}
     </article>
+  );
+}
+
+
+function EtaAnalytics({ token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function loadAnalytics() {
+    setRefreshing(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API}/api/deliveries/analytics/eta`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Could not load ETA analytics.");
+      }
+
+      setData(result);
+    } catch (err) {
+      setError(err.message || "Could not load ETA analytics.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [token]);
+
+  const analytics = data?.analytics;
+  const ml = analytics?.mlModel;
+  const baseline = analytics?.formulaBaseline;
+  const comparisons = data?.comparisons || [];
+  const driverStats = Object.values(
+    comparisons.reduce((groups, row) => {
+      const name = row.driverName || "Unknown driver";
+
+      if (!groups[name]) {
+        groups[name] = {
+          name,
+          deliveries: 0,
+          mlErrorTotal: 0,
+          baselineErrorTotal: 0,
+        };
+      }
+
+      groups[name].deliveries += 1;
+      groups[name].mlErrorTotal += Number(row.mlAbsoluteErrorSeconds) || 0;
+      groups[name].baselineErrorTotal +=
+        Number(row.baselineAbsoluteErrorSeconds) || 0;
+
+      return groups;
+    }, {})
+  )
+    .map((driver) => {
+      const mlMae = driver.mlErrorTotal / driver.deliveries;
+      const baselineMae = driver.baselineErrorTotal / driver.deliveries;
+
+      return {
+        ...driver,
+        mlMae,
+        baselineMae,
+        improvement:
+          baselineMae > 0
+            ? ((baselineMae - mlMae) / baselineMae) * 100
+            : null,
+      };
+    })
+    .sort((a, b) => a.mlMae - b.mlMae);
+
+  const errorRankedRows = [...comparisons].sort(
+    (a, b) =>
+      (Number(a.mlAbsoluteErrorSeconds) || 0) -
+      (Number(b.mlAbsoluteErrorSeconds) || 0)
+  );
+
+  const mostAccurateDelivery = errorRankedRows[0] || null;
+  const leastAccurateDelivery =
+    errorRankedRows[errorRankedRows.length - 1] || null;
+
+  const errorBuckets = [
+    {
+      label: "0–30 seconds",
+      count: comparisons.filter(
+        (row) => Number(row.mlAbsoluteErrorSeconds) <= 30
+      ).length,
+    },
+    {
+      label: "31–60 seconds",
+      count: comparisons.filter(
+        (row) =>
+          Number(row.mlAbsoluteErrorSeconds) > 30 &&
+          Number(row.mlAbsoluteErrorSeconds) <= 60
+      ).length,
+    },
+    {
+      label: "61–120 seconds",
+      count: comparisons.filter(
+        (row) =>
+          Number(row.mlAbsoluteErrorSeconds) > 60 &&
+          Number(row.mlAbsoluteErrorSeconds) <= 120
+      ).length,
+    },
+    {
+      label: "Above 120 seconds",
+      count: comparisons.filter(
+        (row) => Number(row.mlAbsoluteErrorSeconds) > 120
+      ).length,
+    },
+  ];
+
+  const maxDeliveryError = Math.max(
+    1,
+    ...comparisons.flatMap((row) => [
+      Number(row.mlAbsoluteErrorSeconds) || 0,
+      Number(row.baselineAbsoluteErrorSeconds) || 0,
+    ])
+  );
+
+
+  const chartRows = [...comparisons].sort(
+    (a, b) => Number(a.deliveryId) - Number(b.deliveryId)
+  );
+
+  const chartValues = chartRows.flatMap((row) => [
+    Number(row.predictedEtaSeconds) || 0,
+    Number(row.simulatedEtaSeconds) || 0,
+  ]);
+
+  const chartMin = chartValues.length
+    ? Math.max(0, Math.floor(Math.min(...chartValues) * 0.9 / 100) * 100)
+    : 0;
+
+  const chartMax = chartValues.length
+    ? Math.ceil(Math.max(...chartValues) * 1.1 / 100) * 100
+    : 1;
+
+  const chartX = (index) => {
+    const left = 62;
+    const right = 22;
+    const plotWidth = 760 - left - right;
+    return chartRows.length <= 1
+      ? left + plotWidth / 2
+      : left + (index / (chartRows.length - 1)) * plotWidth;
+  };
+
+  const chartY = (value) => {
+    const top = 22;
+    const bottom = 48;
+    const plotHeight = 300 - top - bottom;
+    return top + ((chartMax - value) / (chartMax - chartMin)) * plotHeight;
+  };
+
+  const mlChartPoints = chartRows
+    .map((row, index) =>
+      `${chartX(index)},${chartY(Number(row.predictedEtaSeconds) || 0)}`
+    )
+    .join(" ");
+
+  const simulatedChartPoints = chartRows
+    .map((row, index) =>
+      `${chartX(index)},${chartY(Number(row.simulatedEtaSeconds) || 0)}`
+    )
+    .join(" ");
+
+
+  const formatSeconds = (value) =>
+    value == null ? "—" : `${Number(value).toFixed(2)}s`;
+
+  const maxMae = Math.max(
+    Number(ml?.maeSeconds) || 0,
+    Number(baseline?.maeSeconds) || 0,
+    1
+  );
+
+  function errorLabel(value) {
+    if (value > 0) return "Underestimated";
+    if (value < 0) return "Overestimated";
+    return "Exact";
+  }
+
+  return (
+    <section className="eta-analytics-page">
+      <div className="eta-page-heading">
+        <div>
+          <h3>ETA model performance</h3>
+          <p>Compare TensorFlow.js predictions against the formula baseline.</p>
+        </div>
+
+        <button
+          type="button"
+          className="refresh-button"
+          onClick={loadAnalytics}
+          disabled={refreshing}
+        >
+          <Activity size={16} />
+          {refreshing ? "Refreshing..." : "Refresh analytics"}
+        </button>
+      </div>
+
+      {error && <div className="error-banner">{error}</div>}
+
+      {loading ? (
+        <article className="panel eta-empty-state">
+          Loading ETA performance data...
+        </article>
+      ) : !data ? (
+        <article className="panel eta-empty-state">
+          No analytics data could be loaded. Try refreshing.
+        </article>
+      ) : (
+        <>
+          <div className="eta-data-notice">
+            <strong>Evaluation dataset</strong>
+            <span>
+              {analytics.evaluatedDeliveries} evaluated deliveries.
+              Results use simulated delivery durations, not real-world
+              measured delivery times.
+            </span>
+          </div>
+
+          <div className="eta-metric-grid">
+            <article className="eta-metric-card">
+              <span>ML model MAE</span>
+              <strong>{formatSeconds(ml?.maeSeconds)}</strong>
+              <small>Mean absolute error</small>
+            </article>
+
+            <article className="eta-metric-card">
+              <span>Formula baseline MAE</span>
+              <strong>{formatSeconds(baseline?.maeSeconds)}</strong>
+              <small>Mean absolute error</small>
+            </article>
+
+            <article className="eta-metric-card">
+              <span>ML model RMSE</span>
+              <strong>{formatSeconds(ml?.rmseSeconds)}</strong>
+              <small>Root mean squared error</small>
+            </article>
+
+            <article className="eta-metric-card">
+              <span>MAE improvement</span>
+              <strong>
+                {analytics.maeImprovementPercentage == null
+                  ? "—"
+                  : `${analytics.maeImprovementPercentage}%`}
+              </strong>
+              <small>ML compared with formula baseline</small>
+            </article>
+          </div>
+
+          <article className="panel eta-comparison-panel">
+            <div className="panel-heading">
+              <div>
+                <h3>Prediction error comparison</h3>
+                <p>Lower MAE indicates a smaller average prediction error.</p>
+              </div>
+            </div>
+
+            <div className="eta-bars">
+              <div className="eta-bar-row">
+                <div className="eta-bar-label">
+                  <strong>TensorFlow.js model</strong>
+                  <span>{formatSeconds(ml?.maeSeconds)}</span>
+                </div>
+                <div className="eta-bar-track">
+                  <div
+                    className="eta-bar-fill eta-ml-bar"
+                    style={{
+                      width: `${Math.max(
+                        2,
+                        ((Number(ml?.maeSeconds) || 0) / maxMae) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="eta-bar-row">
+                <div className="eta-bar-label">
+                  <strong>Formula baseline</strong>
+                  <span>{formatSeconds(baseline?.maeSeconds)}</span>
+                </div>
+                <div className="eta-bar-track">
+                  <div
+                    className="eta-bar-fill eta-baseline-bar"
+                    style={{
+                      width: `${Math.max(
+                        2,
+                        ((Number(baseline?.maeSeconds) || 0) / maxMae) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="eta-secondary-metrics">
+              <div>
+                <span>ML average signed error</span>
+                <strong>{formatSeconds(ml?.averageSignedErrorSeconds)}</strong>
+              </div>
+              <div>
+                <span>Baseline average signed error</span>
+                <strong>
+                  {formatSeconds(baseline?.averageSignedErrorSeconds)}
+                </strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="panel eta-trend-chart">
+            <div className="panel-heading">
+              <div>
+                <h3>Prediction vs simulated ETA</h3>
+                <p>Compare the model's predicted duration with each simulated delivery.</p>
+              </div>
+              <span className="count-pill">{chartRows.length} deliveries</span>
+            </div>
+
+            {chartRows.length === 0 ? (
+              <p className="empty-state">Complete deliveries to see the ETA trend.</p>
+            ) : (
+              <>
+                <div className="eta-chart-legend">
+                  <span><i className="eta-legend-dot eta-legend-ml" /> ML predicted ETA</span>
+                  <span><i className="eta-legend-dot eta-legend-simulated" /> Simulated duration</span>
+                </div>
+
+                <div className="eta-chart-scroll">
+                  <svg
+                    className="eta-line-chart"
+                    viewBox="0 0 760 300"
+                    role="img"
+                    aria-label="Line chart comparing machine learning predicted ETA and simulated delivery duration"
+                  >
+                    {[0, 1, 2, 3, 4].map((tick) => {
+                      const value = chartMin + ((chartMax - chartMin) * tick) / 4;
+                      const y = chartY(value);
+
+                      return (
+                        <g key={tick}>
+                          <line
+                            x1="62"
+                            y1={y}
+                            x2="738"
+                            y2={y}
+                            className="eta-chart-gridline"
+                          />
+                          <text
+                            x="52"
+                            y={y + 4}
+                            textAnchor="end"
+                            className="eta-chart-axis-label"
+                          >
+                            {Math.round(value).toLocaleString()}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    <polyline
+                      points={mlChartPoints}
+                      className="eta-chart-line eta-chart-ml"
+                    />
+                    <polyline
+                      points={simulatedChartPoints}
+                      className="eta-chart-line eta-chart-simulated"
+                    />
+
+                    {chartRows.map((row, index) => (
+                      <g key={row.deliveryId}>
+                        <circle
+                          cx={chartX(index)}
+                          cy={chartY(Number(row.predictedEtaSeconds) || 0)}
+                          r="5"
+                          className="eta-chart-point eta-chart-ml-point"
+                        >
+                          <title>
+                            {`Delivery #${row.deliveryId} ML ETA: ${row.predictedEtaSeconds}s`}
+                          </title>
+                        </circle>
+
+                        <circle
+                          cx={chartX(index)}
+                          cy={chartY(Number(row.simulatedEtaSeconds) || 0)}
+                          r="5"
+                          className="eta-chart-point eta-chart-simulated-point"
+                        >
+                          <title>
+                            {`Delivery #${row.deliveryId} simulated: ${row.simulatedEtaSeconds}s`}
+                          </title>
+                        </circle>
+
+                        <text
+                          x={chartX(index)}
+                          y="276"
+                          textAnchor="middle"
+                          className="eta-chart-axis-label"
+                        >
+                          #{row.deliveryId}
+                        </text>
+                      </g>
+                    ))}
+
+                    <text
+                      x="400"
+                      y="296"
+                      textAnchor="middle"
+                      className="eta-chart-axis-label"
+                    >
+                      Delivery ID
+                    </text>
+                  </svg>
+                </div>
+                <p className="eta-chart-caption">
+                  Values are in seconds. Hover over a plotted point to inspect its ETA.
+                </p>
+              </>
+            )}
+          </article>
+
+          <article className="panel eta-driver-performance">
+            <div className="panel-heading">
+              <div>
+                <h3>Driver-wise ETA performance</h3>
+                <p>Average absolute prediction error grouped by assigned driver.</p>
+              </div>
+              <span className="count-pill">{driverStats.length} drivers</span>
+            </div>
+
+            {driverStats.length === 0 ? (
+              <p className="empty-state">
+                No driver performance data is available yet.
+              </p>
+            ) : (
+              <div className="eta-driver-grid">
+                {driverStats.map((driver) => (
+                  <div className="eta-driver-card" key={driver.name}>
+                    <div className="eta-driver-card-heading">
+                      <div>
+                        <strong>{driver.name}</strong>
+                        <span>
+                          {driver.deliveries} evaluated{" "}
+                          {driver.deliveries === 1 ? "delivery" : "deliveries"}
+                        </span>
+                      </div>
+                      <span className="eta-driver-icon">
+                        <Bike size={18} />
+                      </span>
+                    </div>
+
+                    <div className="eta-driver-mae">
+                      <span>ML model MAE</span>
+                      <strong>{formatSeconds(driver.mlMae)}</strong>
+                    </div>
+
+                    <div className="eta-driver-baseline">
+                      <span>Formula baseline MAE</span>
+                      <strong>{formatSeconds(driver.baselineMae)}</strong>
+                    </div>
+
+                    <div
+                      className={`eta-driver-improvement ${
+                        driver.improvement > 0
+                          ? "eta-driver-positive"
+                          : driver.improvement < 0
+                            ? "eta-driver-negative"
+                            : ""
+                      }`}
+                    >
+                      {driver.improvement == null
+                        ? "Baseline unavailable"
+                        : `${Math.abs(driver.improvement).toFixed(2)}% ${
+                            driver.improvement > 0
+                              ? "lower error"
+                              : driver.improvement < 0
+                                ? "higher error"
+                                : "same error"
+                          } vs baseline`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="eta-driver-note">
+              Driver comparisons are based only on the evaluated simulated
+              deliveries shown here. Different delivery counts and routes can
+              affect these averages.
+            </p>
+          </article>
+
+          <article className="panel eta-error-breakdown">
+            <div className="panel-heading">
+              <div>
+                <h3>Delivery-level error breakdown</h3>
+                <p>Find the most and least accurate predictions in this evaluation.</p>
+              </div>
+              <span className="count-pill">{comparisons.length} records</span>
+            </div>
+
+            {comparisons.length === 0 ? (
+              <p className="empty-state">
+                Complete deliveries to see the prediction error breakdown.
+              </p>
+            ) : (
+              <>
+                <div className="eta-accuracy-highlights">
+                  <div className="eta-highlight-card eta-best-card">
+                    <span className="eta-highlight-label">MOST ACCURATE</span>
+                    <strong>
+                      Delivery #{mostAccurateDelivery.deliveryId}
+                    </strong>
+                    <span>{mostAccurateDelivery.driverName}</span>
+                    <b>
+                      {formatSeconds(mostAccurateDelivery.mlAbsoluteErrorSeconds)}
+                      {" "}error
+                    </b>
+                  </div>
+
+                  <div className="eta-highlight-card eta-worst-card">
+                    <span className="eta-highlight-label">LEAST ACCURATE</span>
+                    <strong>
+                      Delivery #{leastAccurateDelivery.deliveryId}
+                    </strong>
+                    <span>{leastAccurateDelivery.driverName}</span>
+                    <b>
+                      {formatSeconds(leastAccurateDelivery.mlAbsoluteErrorSeconds)}
+                      {" "}error
+                    </b>
+                  </div>
+                </div>
+
+                <div className="eta-error-distribution">
+                  <div className="eta-distribution-heading">
+                    <strong>ML prediction error distribution</strong>
+                    <span>Number of deliveries in each range</span>
+                  </div>
+
+                  {errorBuckets.map((bucket) => (
+                    <div className="eta-distribution-row" key={bucket.label}>
+                      <span>{bucket.label}</span>
+                      <div className="eta-distribution-track">
+                        <div
+                          className="eta-distribution-fill"
+                          style={{
+                            width: `${(bucket.count / comparisons.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <strong>{bucket.count}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="eta-error-ranking">
+                  <div className="eta-distribution-heading">
+                    <strong>ML vs baseline error by delivery</strong>
+                    <span>Lower bars indicate smaller absolute error</span>
+                  </div>
+
+                  {errorRankedRows.map((row) => (
+                    <div className="eta-error-ranking-row" key={row.deliveryId}>
+                      <div className="eta-error-ranking-title">
+                        <strong>#{row.deliveryId} · {row.driverName}</strong>
+                        <span>ML {formatSeconds(row.mlAbsoluteErrorSeconds)}</span>
+                      </div>
+
+                      <div className="eta-ranking-bars">
+                        <div className="eta-ranking-track">
+                          <div
+                            className="eta-ranking-fill eta-ranking-ml"
+                            style={{
+                              width: `${((Number(row.mlAbsoluteErrorSeconds) || 0) / maxDeliveryError) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="eta-ranking-track">
+                          <div
+                            className="eta-ranking-fill eta-ranking-baseline"
+                            style={{
+                              width: `${((Number(row.baselineAbsoluteErrorSeconds) || 0) / maxDeliveryError) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="eta-ranking-legend">
+                        <span>ML: {formatSeconds(row.mlAbsoluteErrorSeconds)}</span>
+                        <span>Baseline: {formatSeconds(row.baselineAbsoluteErrorSeconds)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </article>
+
+          <article className="panel eta-comparison-panel">
+            <div className="panel-heading">
+              <div>
+                <h3>Delivery-level comparisons</h3>
+                <p>Individual predictions versus simulated durations.</p>
+              </div>
+              <span className="count-pill">
+                {analytics.evaluatedDeliveries} evaluated
+              </span>
+            </div>
+
+            {comparisons.length === 0 ? (
+              <p className="empty-state">
+                No completed deliveries have prediction records yet.
+              </p>
+            ) : (
+              <div className="table-wrap eta-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>JOB</th>
+                      <th>DRIVER</th>
+                      <th>ML ETA</th>
+                      <th>BASELINE</th>
+                      <th>SIMULATED</th>
+                      <th>ML ERROR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisons.map((row) => (
+                      <tr key={row.deliveryId}>
+                        <td className="job-id">#{row.deliveryId}</td>
+                        <td>{row.driverName}</td>
+                        <td>{formatSeconds(row.predictedEtaSeconds)}</td>
+                        <td>{formatSeconds(row.baselineEtaSeconds)}</td>
+                        <td>{formatSeconds(row.simulatedEtaSeconds)}</td>
+                        <td>
+                          <span
+                            className={`eta-error-label ${
+                              row.mlSignedErrorSeconds > 0
+                                ? "eta-under"
+                                : row.mlSignedErrorSeconds < 0
+                                  ? "eta-over"
+                                  : ""
+                            }`}
+                          >
+                            {formatSeconds(row.mlAbsoluteErrorSeconds)}
+                            <small>
+                              {errorLabel(row.mlSignedErrorSeconds)}
+                            </small>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </article>
+
+          <p className="eta-disclaimer">
+            {data.interpretation?.limitation ||
+              "These results are based on simulated delivery data and do not establish real-world ETA accuracy."}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -816,6 +1620,9 @@ const [drivers, setDrivers] = useState([]);
         <button type="button" className={`nav-item ${activePage === "drivers" ? "selected" : ""}`} onClick={() => setActivePage("drivers")}>
           <Bike size={18} /> Drivers
         </button>
+        <button type="button" className={`nav-item ${activePage === "eta" ? "selected" : ""}`} onClick={() => setActivePage("eta")}>
+          <Gauge size={18} /> ETA Analytics
+        </button>
 
         <div className="sidebar-bottom">
           <div className="account-panel">
@@ -842,14 +1649,18 @@ const [drivers, setDrivers] = useState([]);
                 ? "Dispatch overview"
                 : activePage === "deliveries"
                   ? "Deliveries"
-                  : "Driver fleet"}
+                  : activePage === "drivers"
+                  ? "Driver fleet"
+                  : "ETA analytics"}
             </h2>
             <p className="subheading">
               {activePage === "overview"
                 ? "Monitor delivery jobs and driver availability in real time."
                 : activePage === "deliveries"
                   ? "Review delivery jobs and inspect individual delivery details."
-                  : "Monitor driver availability and completed deliveries."}
+                  : activePage === "drivers"
+                  ? "Monitor driver availability and completed deliveries."
+                  : "Evaluate ETA predictions and compare model performance."}
             </p>
           </div>
 
@@ -1331,6 +2142,8 @@ const [drivers, setDrivers] = useState([]);
             </article>
           </section>
         )}
+
+        {activePage === "eta" && <EtaAnalytics token={token} />}
 
         <footer>
           DispatchFlow · Queue-based delivery dispatch simulator

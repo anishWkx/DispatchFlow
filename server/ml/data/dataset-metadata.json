@@ -1,0 +1,12 @@
+{
+  "datasetType": "synthetic",
+  "seed": 20261113,
+  "scenarios": 1000,
+  "candidateDrivers": 3,
+  "totalSamples": 3000,
+  "target": "target_eta_seconds",
+  "targetUnit": "seconds",
+  "distanceSource": "configured location coordinates and road distance factor",
+  "trafficSource": "deterministically generated synthetic multiplier",
+  "generatedAt": "2026-11-12T21:09:02.903Z"
+}

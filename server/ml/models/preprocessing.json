@@ -1,0 +1,42 @@
+{
+  "features": [
+    "avg_speed_kmph",
+    "pickup_delay_seconds",
+    "driver_to_pickup_km",
+    "pickup_to_dropoff_km",
+    "traffic_multiplier"
+  ],
+  "target": "target_eta_seconds",
+  "featureMeans": [
+    33.333333333333336,
+    105,
+    9.337625000000077,
+    15.371650000000328,
+    1.3043375000000013
+  ],
+  "featureStdDevs": [
+    3.299831645537258,
+    32.4037034920393,
+    7.0058561653360085,
+    4.419698041439061,
+    0.17174344556270504
+  ],
+  "targetMean": 3308.1720833333334,
+  "targetStd": 1194.009427644519,
+  "datasetType": "synthetic",
+  "trainingSamples": 2400,
+  "testingSamples": 600,
+  "totalSamples": 3000,
+  "scenarioSplit": "80/20 by scenario_id",
+  "epochs": 100,
+  "batchSize": 32,
+  "metrics": {
+    "mae": 5.408881442004924,
+    "rmse": 6.787901711503003
+  },
+  "baselineMetrics": {
+    "mae": 1045.7357361111094,
+    "rmse": 1250.3979461772722
+  },
+  "trainedAt": "2026-11-12T21:15:32.732Z"
+}

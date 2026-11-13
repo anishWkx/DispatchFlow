@@ -2411,3 +2411,1065 @@ footer span {
     justify-self: stretch;
   }
 }
+
+
+
+/* ETA analytics page */
+.eta-analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.eta-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.eta-page-heading h3 {
+  margin: 0;
+  color: #edf1fb;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.eta-page-heading p {
+  margin: 6px 0 0;
+  color: #8792a7;
+  font-size: 12px;
+}
+
+.eta-data-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 18px;
+  border: 1px solid #66552d;
+  border-radius: 12px;
+  background: #332b19;
+  color: #f5d994;
+  font-size: 12px;
+}
+
+.eta-data-notice span {
+  color: #d2c29b;
+  line-height: 1.6;
+}
+
+.eta-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.eta-metric-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #252c3b;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #171c29, #121722);
+}
+
+.eta-metric-card > span,
+.eta-metric-card small {
+  display: block;
+  color: #929db2;
+  font-size: 11px;
+}
+
+.eta-metric-card > strong {
+  display: block;
+  margin: 15px 0 9px;
+  color: #f2f5fc;
+  font-size: clamp(20px, 2.3vw, 29px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.eta-comparison-panel {
+  width: 100%;
+}
+
+.eta-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px 20px;
+}
+
+.eta-bar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #dce3f1;
+  font-size: 12px;
+}
+
+.eta-bar-label span {
+  color: #a5b0c4;
+  font-variant-numeric: tabular-nums;
+}
+
+.eta-bar-track {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #293143;
+}
+
+.eta-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.eta-ml-bar {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+}
+
+.eta-baseline-bar {
+  background: linear-gradient(90deg, #0891b2, #22d3ee);
+}
+
+.eta-secondary-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  padding: 17px 20px;
+  border-top: 1px solid #252c3b;
+}
+
+.eta-secondary-metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.eta-secondary-metrics span {
+  color: #929db2;
+  font-size: 11px;
+}
+
+.eta-secondary-metrics strong {
+  color: #edf1fb;
+  font-size: 15px;
+}
+
+.eta-table-wrap {
+  overflow-x: auto;
+}
+
+.eta-table-wrap table {
+  min-width: 760px;
+}
+
+.eta-error-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.eta-error-label small {
+  color: #929db2;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.eta-error-label.eta-under {
+  color: #fb923c;
+}
+
+.eta-error-label.eta-over {
+  color: #60a5fa;
+}
+
+.eta-disclaimer {
+  margin: 0;
+  color: #929db2;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.eta-empty-state {
+  padding: 25px;
+  color: #aab5c8;
+  font-size: 13px;
+}
+
+.light-theme .eta-page-heading h3,
+.light-theme .eta-metric-card > strong,
+.light-theme .eta-secondary-metrics strong {
+  color: #1e293b;
+}
+
+.light-theme .eta-page-heading p,
+.light-theme .eta-metric-card > span,
+.light-theme .eta-metric-card small,
+.light-theme .eta-secondary-metrics span,
+.light-theme .eta-disclaimer {
+  color: #718096;
+}
+
+.light-theme .eta-metric-card {
+  background: linear-gradient(145deg, #ffffff, #f1f4ff);
+  border-color: #e0e6f3;
+}
+
+.light-theme .eta-bar-label {
+  color: #334155;
+}
+
+.light-theme .eta-bar-label span {
+  color: #64748b;
+}
+
+.light-theme .eta-bar-track {
+  background: #e2e8f0;
+}
+
+.light-theme .eta-secondary-metrics {
+  border-top-color: #e2e8f0;
+}
+
+.light-theme .eta-data-notice {
+  background: #fff8e6;
+  border-color: #f1d89a;
+  color: #805b10;
+}
+
+.light-theme .eta-data-notice span {
+  color: #806b42;
+}
+
+.light-theme .eta-error-label small {
+  color: #718096;
+}
+
+@media (max-width: 900px) {
+  .eta-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .eta-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .eta-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eta-secondary-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* ETA prediction versus simulated duration chart */
+.eta-trend-chart {
+  width: 100%;
+}
+
+.eta-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 16px 20px 0;
+  color: #aab5c8;
+  font-size: 11px;
+}
+
+.eta-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eta-legend-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.eta-legend-ml {
+  background: #818cf8;
+}
+
+.eta-legend-simulated {
+  background: #22d3ee;
+}
+
+.eta-chart-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding: 8px 12px 0;
+}
+
+.eta-line-chart {
+  display: block;
+  width: 100%;
+  min-width: 540px;
+  height: auto;
+  overflow: visible;
+}
+
+.eta-chart-gridline {
+  stroke: #30394b;
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.eta-chart-axis-label {
+  fill: #8995aa;
+  font-size: 11px;
+}
+
+.eta-chart-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.eta-chart-ml {
+  stroke: #818cf8;
+}
+
+.eta-chart-simulated {
+  stroke: #22d3ee;
+}
+
+.eta-chart-point {
+  stroke: #121722;
+  stroke-width: 2;
+}
+
+.eta-chart-ml-point {
+  fill: #818cf8;
+}
+
+.eta-chart-simulated-point {
+  fill: #22d3ee;
+}
+
+.eta-chart-caption {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: #8792a7;
+  font-size: 10px;
+}
+
+.light-theme .eta-chart-legend {
+  color: #64748b;
+}
+
+.light-theme .eta-chart-gridline {
+  stroke: #dbe3ef;
+}
+
+.light-theme .eta-chart-axis-label {
+  fill: #64748b;
+}
+
+.light-theme .eta-chart-point {
+  stroke: #ffffff;
+}
+
+
+
+/* Driver-wise ETA performance */
+.eta-driver-performance {
+  width: 100%;
+}
+
+.eta-driver-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+.eta-driver-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #30394b;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #191f2e, #151a26);
+}
+
+.eta-driver-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.eta-driver-card-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.eta-driver-card-heading strong {
+  color: #edf1fb;
+  font-size: 14px;
+}
+
+.eta-driver-card-heading span {
+  color: #929db2;
+  font-size: 10px;
+}
+
+.eta-driver-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #34335b;
+  color: #a5a7ff;
+}
+
+.eta-driver-mae,
+.eta-driver-baseline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 0;
+  border-top: 1px solid #30394b;
+}
+
+.eta-driver-mae span,
+.eta-driver-baseline span {
+  color: #929db2;
+  font-size: 10px;
+}
+
+.eta-driver-mae strong,
+.eta-driver-baseline strong {
+  color: #edf1fb;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.eta-driver-improvement {
+  margin-top: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #303041;
+  color: #c4c4e8;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.eta-driver-positive {
+  background: #12372d;
+  color: #6ee7b7;
+}
+
+.eta-driver-negative {
+  background: #3b2528;
+  color: #fca5a5;
+}
+
+.eta-driver-note {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: #929db2;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.light-theme .eta-driver-card {
+  background: linear-gradient(145deg, #ffffff, #f4f6ff);
+  border-color: #e0e6f3;
+}
+
+.light-theme .eta-driver-card-heading strong,
+.light-theme .eta-driver-mae strong,
+.light-theme .eta-driver-baseline strong {
+  color: #1e293b;
+}
+
+.light-theme .eta-driver-card-heading span,
+.light-theme .eta-driver-mae span,
+.light-theme .eta-driver-baseline span,
+.light-theme .eta-driver-note {
+  color: #718096;
+}
+
+.light-theme .eta-driver-mae,
+.light-theme .eta-driver-baseline {
+  border-top-color: #e2e8f0;
+}
+
+.light-theme .eta-driver-positive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.light-theme .eta-driver-negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 900px) {
+  .eta-driver-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .eta-driver-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* Delivery-level prediction error breakdown */
+.eta-error-breakdown {
+  width: 100%;
+}
+
+.eta-accuracy-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+.eta-highlight-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 17px;
+  border: 1px solid #30394b;
+  border-radius: 12px;
+  background: #171e2b;
+}
+
+.eta-highlight-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.eta-highlight-card strong {
+  color: #edf1fb;
+  font-size: 17px;
+}
+
+.eta-highlight-card > span:not(.eta-highlight-label) {
+  color: #929db2;
+  font-size: 11px;
+}
+
+.eta-highlight-card b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eta-best-card {
+  border-color: #22664e;
+}
+
+.eta-best-card .eta-highlight-label,
+.eta-best-card b {
+  color: #6ee7b7;
+}
+
+.eta-worst-card {
+  border-color: #754044;
+}
+
+.eta-worst-card .eta-highlight-label,
+.eta-worst-card b {
+  color: #fca5a5;
+}
+
+.eta-error-distribution,
+.eta-error-ranking {
+  padding: 20px;
+  border-top: 1px solid #252c3b;
+}
+
+.eta-distribution-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+
+.eta-distribution-heading strong {
+  color: #edf1fb;
+  font-size: 12px;
+}
+
+.eta-distribution-heading span {
+  color: #929db2;
+  font-size: 10px;
+}
+
+.eta-distribution-row {
+  display: grid;
+  grid-template-columns: 115px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.eta-distribution-row > span {
+  color: #aab5c8;
+  font-size: 10px;
+}
+
+.eta-distribution-row > strong {
+  color: #edf1fb;
+  font-size: 11px;
+  text-align: right;
+}
+
+.eta-distribution-track,
+.eta-ranking-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #293143;
+}
+
+.eta-distribution-fill {
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6366f1, #a5b4fc);
+  transition: width 0.3s ease;
+}
+
+.eta-error-ranking-row {
+  padding: 14px 0;
+  border-top: 1px solid #252c3b;
+}
+
+.eta-error-ranking-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.eta-error-ranking-title strong {
+  color: #dce3f1;
+  font-size: 11px;
+}
+
+.eta-error-ranking-title span {
+  color: #aab5c8;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.eta-ranking-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eta-ranking-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.eta-ranking-ml {
+  background: #818cf8;
+}
+
+.eta-ranking-baseline {
+  background: #22d3ee;
+}
+
+.eta-ranking-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.eta-ranking-legend span {
+  color: #929db2;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.light-theme .eta-highlight-card {
+  background: #f8faff;
+  border-color: #e0e6f3;
+}
+
+.light-theme .eta-highlight-card strong,
+.light-theme .eta-distribution-heading strong,
+.light-theme .eta-distribution-row > strong,
+.light-theme .eta-error-ranking-title strong {
+  color: #1e293b;
+}
+
+.light-theme .eta-highlight-card > span:not(.eta-highlight-label),
+.light-theme .eta-distribution-heading span,
+.light-theme .eta-distribution-row > span,
+.light-theme .eta-error-ranking-title span,
+.light-theme .eta-ranking-legend span {
+  color: #718096;
+}
+
+.light-theme .eta-error-distribution,
+.light-theme .eta-error-ranking,
+.light-theme .eta-error-ranking-row {
+  border-top-color: #e2e8f0;
+}
+
+.light-theme .eta-distribution-track,
+.light-theme .eta-ranking-track {
+  background: #e2e8f0;
+}
+
+.light-theme .eta-best-card {
+  border-color: #a7e5c7;
+}
+
+.light-theme .eta-worst-card {
+  border-color: #f2b8b8;
+}
+
+@media (max-width: 600px) {
+  .eta-accuracy-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .eta-distribution-row {
+    grid-template-columns: 100px minmax(0, 1fr) 20px;
+    gap: 8px;
+  }
+
+  .eta-error-ranking-title {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+
+
+/* Smart driver recommendation */
+.smart-recommendation-panel {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #30394b;
+  border-radius: 12px;
+  background: #171e2b;
+}
+
+.smart-recommendation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.smart-recommendation-heading h4 {
+  margin: 5px 0 0;
+  color: #edf1fb;
+  font-size: 14px;
+}
+
+.smart-recommendation-count {
+  color: #aab5c8;
+  font-size: 10px;
+}
+
+.smart-recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smart-recommendation-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #30394b;
+  border-radius: 9px;
+  background: #202838;
+}
+
+.smart-recommendation-item.is-recommended {
+  border-color: #25815f;
+  background: rgba(16, 105, 73, 0.13);
+}
+
+.smart-recommendation-rank {
+  color: #aab5c8;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.is-recommended .smart-recommendation-rank {
+  color: #6ee7b7;
+}
+
+.smart-recommendation-driver,
+.smart-recommendation-eta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.smart-recommendation-driver strong,
+.smart-recommendation-eta strong {
+  color: #edf1fb;
+  font-size: 11px;
+}
+
+.smart-recommendation-driver span,
+.smart-recommendation-eta span {
+  color: #929db2;
+  font-size: 9px;
+}
+
+.smart-recommendation-eta {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.is-recommended .smart-recommendation-eta strong,
+.is-recommended .smart-recommendation-eta span {
+  color: #6ee7b7;
+}
+
+.smart-recommendation-note {
+  margin: 13px 0 0;
+  color: #929db2;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.light-theme .smart-recommendation-panel {
+  border-color: #e0e6f3;
+  background: #f8faff;
+}
+
+.light-theme .smart-recommendation-heading h4,
+.light-theme .smart-recommendation-driver strong,
+.light-theme .smart-recommendation-eta strong {
+  color: #1e293b;
+}
+
+.light-theme .smart-recommendation-item {
+  border-color: #e0e6f3;
+  background: #ffffff;
+}
+
+.light-theme .smart-recommendation-item.is-recommended {
+  border-color: #a7e5c7;
+  background: #effcf5;
+}
+
+.light-theme .smart-recommendation-count,
+.light-theme .smart-recommendation-driver span,
+.light-theme .smart-recommendation-eta span,
+.light-theme .smart-recommendation-note {
+  color: #718096;
+}
+
+@media (max-width: 480px) {
+  .smart-recommendation-panel {
+    padding: 12px;
+  }
+
+  .smart-recommendation-item {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 9px;
+  }
+}
+
+/* Explainable Smart Driver Recommendation */
+.smart-driver-factors {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.045);
+}
+
+.smart-driver-factors-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.smart-driver-factors-heading strong {
+  font-size: 12px;
+}
+
+.smart-driver-factors-heading span,
+.smart-driver-factor-grid span {
+  color: var(--muted-text, #94a3b8);
+  font-size: 10px;
+}
+
+.smart-driver-factor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.smart-driver-factor-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.smart-driver-factor-grid strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .smart-driver-factor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Live delivery lifecycle timeline */
+.delivery-timeline {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+  border-radius: 14px;
+  background: var(--panel-secondary, rgba(148, 163, 184, 0.04));
+}
+
+.delivery-timeline-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.delivery-timeline-heading h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.delivery-timeline-heading > span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #16a34a;
+}
+
+.delivery-timeline-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery-timeline-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-height: 62px;
+  position: relative;
+}
+
+.delivery-timeline-marker {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #64748b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-bg, #fff);
+  color: #16a34a;
+  z-index: 1;
+}
+
+.delivery-timeline-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 19px;
+  height: 43px;
+  width: 2px;
+  background: var(--border-color, #64748b);
+}
+
+.delivery-timeline-item.is-completed .delivery-timeline-marker {
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.delivery-timeline-item.is-completed:not(:last-child)::after {
+  background: #16a34a;
+}
+
+.delivery-timeline-item.is-active .delivery-timeline-marker {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.delivery-timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.delivery-timeline-content strong {
+  font-size: 12px;
+  color: var(--text-primary, inherit);
+}
+
+.delivery-timeline-content span {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.delivery-timeline-state {
+  font-size: 10px;
+  color: var(--text-secondary, #94a3b8);
+  padding-top: 2px;
+}
+
+.delivery-timeline-item.is-completed .delivery-timeline-state {
+  color: #16a34a;
+}
+
+.delivery-timeline-item.is-active .delivery-timeline-state {
+  color: #818cf8;
+  font-weight: 700;
+}
