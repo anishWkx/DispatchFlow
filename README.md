@@ -1,179 +1,263 @@
-# DispatchFlow — Delivery Dispatch and Queue Management System
+# DispatchFlow — Intelligent Delivery Dispatch & ETA Analytics
 
-DispatchFlow is a full-stack delivery dispatch and queue management application designed to manage delivery requests, assign drivers, and process deliveries asynchronously.
+DispatchFlow is a full-stack delivery dispatch platform that combines asynchronous job processing, intelligent driver recommendations, machine-learning-based ETA predictions, and delivery analytics.
 
-It uses **BullMQ and Redis** for background job processing, **MySQL** for persistent application data, and **Socket.IO** for real-time delivery updates. The application provides an interactive dashboard to monitor delivery operations, driver availability, queue activity, and delivery performance.
+It manages the delivery lifecycle from order creation to completion, while providing visibility into driver assignment decisions and estimated delivery times.
 
-## Project Links
+## 🚀 Live Demo
 
-- **Live Demo:** https://dispatch-flow-six.vercel.app
+- **Frontend:** https://dispatch-flow-six.vercel.app
 - **Backend API:** https://dispatchflow-as2e.onrender.com
-- **API Health Check:** https://dispatchflow-as2e.onrender.com/api/health
-- **GitHub Repository:** https://github.com/anishWkx/DispatchFlow
+- **API Health:** https://dispatchflow-as2e.onrender.com/api/health
 
-## Features
+## ✨ Features
 
-### Delivery Management
-- Create and manage delivery requests with pickup and drop-off locations.
-- Track delivery status throughout the processing lifecycle.
-- View delivery details, priority levels, and creation timestamps.
-- Search deliveries by delivery ID, pickup location, and drop-off location.
-- Filter deliveries by status, priority, and date range.
-- Paginated delivery listing.
+### 1. Delivery Management
+- Create and manage delivery requests.
+- Track delivery status and priority.
+- Search and filter deliveries.
+- View delivery details and assignment history.
 
-### Background Job Processing
-- Asynchronous delivery processing using BullMQ and Redis.
-- Priority-based job scheduling.
-- Automatic job retries with exponential backoff.
-- Background workers for delivery processing.
-- Driver assignment and release during delivery execution.
+### 2. Asynchronous Job Processing
+- BullMQ and Redis-powered delivery queue.
+- Priority-based job processing.
+- Automatic retries with exponential backoff.
+- Background worker for delivery assignment and processing.
 
-### Authentication and Data Persistence
-- User registration and login using JWT authentication.
+### 3. Authentication & Persistence
+- JWT-based authentication.
 - Password hashing using bcrypt.
-- Protected backend API routes.
-- MySQL/TiDB persistence for users, drivers, deliveries, and assignment records.
+- MySQL/TiDB Cloud database integration.
+- Persistent users, drivers, deliveries, and assignment records.
 
-### Real-Time Updates
-- Real-time delivery updates using Socket.IO.
-- Automatic dashboard refresh when delivery events occur.
-- Authenticated WebSocket connections.
+### 4. Intelligent Driver Recommendations
+- Evaluates available drivers using delivery-related factors.
+- Predicts ETA for candidate drivers.
+- Ranks drivers based on predicted delivery time.
+- Displays recommendation factors such as:
+  - Driver average speed
+  - Pickup delay
+  - Driver-to-pickup distance
+  - Pickup-to-destination distance
+  - Traffic multiplier
+- Stores recommendation snapshots for historical traceability.
 
-### Dashboard and Monitoring
-- Dashboard displaying delivery statistics and queue activity.
-- Driver availability and assignment information.
-- Delivery progress and completion monitoring.
-- Interactive delivery map.
-- Dark and light dashboard themes.
+### 5. Machine Learning ETA Prediction
+- TensorFlow.js-based neural network model.
+- Uses delivery distance, driver speed, pickup delay, and traffic-related features.
+- Generates ETA predictions for candidate driver assignments.
+- Includes a comparison against a baseline estimate.
 
-## Technologies Used
+### 6. ETA Analytics
+- Compare predicted ETA with simulated delivery duration.
+- View prediction errors and baseline comparisons.
+- Track MAE and RMSE metrics.
+- Analyze model predictions through the dashboard.
 
-| Category | Technologies |
+### 7. Delivery Timeline
+- Track assignment, pickup, transit, and delivery milestones.
+- Persist delivery lifecycle timestamps.
+- Display delivery progress in the dashboard.
+- Support real-time updates using Socket.IO.
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
 |---|---|
 | Frontend | React, Vite, JavaScript, CSS |
 | Backend | Node.js, Express.js |
 | Database | MySQL, TiDB Cloud |
-| Job Queue | BullMQ |
-| Queue Storage | Redis, Upstash Redis |
+| Queue | BullMQ, Redis |
 | Authentication | JWT, bcrypt |
-| Real-Time Communication | Socket.IO |
+| Machine Learning | TensorFlow.js |
+| Real-time | Socket.IO |
 | Deployment | Vercel, Render |
+| Queue Hosting | Upstash Redis |
 
-## System Architecture
+## 🏗️ Architecture
 
-1. The React frontend communicates with the Node.js and Express backend through REST APIs.
-2. Users authenticate using JWT tokens to access protected application features.
-3. New delivery requests are validated and persisted in MySQL.
-4. The backend adds delivery jobs to the BullMQ queue.
-5. Redis stores queue information and job states.
-6. A background worker processes queued deliveries and invokes the driver assignment logic.
-7. The worker updates delivery progress and assignment records in MySQL.
-8. Socket.IO broadcasts delivery events to connected dashboard clients.
-9. The frontend displays updated delivery information and operational statistics.
+```text
+                 React + Vite Frontend
+                          |
+                          v
+                   Express REST API
+                          |
+             +------------+------------+
+             |            |            |
+             v            v            v
+          MySQL         Redis       JWT Auth
+        (TiDB Cloud)   Queue
+                          |
+                          v
+                    BullMQ Worker
+                          |
+                          v
+                 Driver Recommendation
+                          |
+                          v
+                  ML-based ETA Model
+                          |
+                          v
+                Delivery Assignment
+                          |
+                          v
+                 Delivery Lifecycle
+                          |
+                          v
+                 Dashboard Analytics
+```
 
-## API Endpoints
+## 📊 ETA Prediction Model
 
-Base URL: `https://dispatchflow-as2e.onrender.com`
+The ETA prediction pipeline uses a synthetic dataset to demonstrate model training and prediction.
+
+**Model inputs:**
+- Average driver speed
+- Pickup delay
+- Driver-to-pickup distance
+- Pickup-to-dropoff distance
+- Traffic multiplier
+
+**Model architecture:**
+- Input layer: 5 features
+- Hidden layer: 32 neurons with ReLU
+- Hidden layer: 16 neurons with ReLU
+- Output layer: 1 neuron with linear activation
+- Optimizer: Adam
+- Loss function: Mean Squared Error
+
+The model is trained and evaluated using a scenario-based train/test split.
+
+**Important:** The current training labels and delivery simulation are synthetic. The model demonstrates the ML pipeline and recommendation workflow; its metrics should not be interpreted as validated real-world ETA accuracy.
+
+## 🔌 API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/health` | Checks backend health |
-| POST | `/api/auth/register` | Registers a user |
-| POST | `/api/auth/login` | Authenticates a user |
-| GET | `/api/deliveries` | Retrieves delivery records |
-| GET | `/api/drivers` | Retrieves driver information |
+| GET | `/api/health` | Backend health check |
+| POST | `/api/auth/register` | Register a user |
+| POST | `/api/auth/login` | Authenticate a user |
+| GET | `/api/deliveries` | Retrieve deliveries |
+| POST | `/api/deliveries` | Create a delivery |
+| GET | `/api/deliveries/analytics/eta` | Retrieve ETA analytics |
+| GET | `/api/drivers` | Retrieve drivers |
 
-Protected endpoints require a valid JWT access token in the Authorization header.
+Protected endpoints require a valid JWT Bearer token.
 
-## Running Locally
+## ⚙️ Local Development
 
 ### Prerequisites
-
-- Node.js and npm
-- MySQL or a compatible TiDB database
-- Redis running locally or a hosted Redis instance
-- Git
+- Node.js
+- MySQL
+- Redis
+- npm
 
 ### 1. Clone the repository
 
-\`\`\`bash
+```bash
 git clone https://github.com/anishWkx/DispatchFlow.git
 cd DispatchFlow
-\`\`\`
+```
 
-### 2. Install backend dependencies
+### 2. Install dependencies
 
-\`\`\`bash
+```bash
 npm install
-\`\`\`
-
-### 3. Install frontend dependencies
-
-\`\`\`bash
 cd client
 npm install
 cd ..
-\`\`\`
+```
 
-### 4. Configure environment variables
+### 3. Configure environment variables
 
-Create a `.env` file in the project root and configure your database, Redis, and authentication settings.
+Create a `server/.env.development` file with your local database, Redis, and authentication configuration.
 
-The backend requires the appropriate database connection settings, `JWT_SECRET`, and `REDIS_URL`.
+Example:
 
-For local Redis development, the default connection URL is:
+```env
+PORT=5001
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=dispatchflow_dev
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET=your_local_secret
+```
 
-\`\`\`text
-redis://127.0.0.1:6379
-\`\`\`
+Create `client/.env.local`:
 
-For the frontend, configure `VITE_API_URL` if you want to use a backend other than the default API URL.
+```env
+VITE_API_URL=http://localhost:5001
+```
 
-**Important:** Keep database credentials, JWT secrets, and Redis credentials private. Never commit `.env` files to GitHub.
+Use your own local credentials. Do not commit environment files or secrets.
 
-### 5. Start the backend
+### 4. Start the backend
 
-From the project root:
+```bash
+npm run dev
+```
 
-\`\`\`bash
-npm start
-\`\`\`
+### 5. Start the frontend
 
-The backend starts the Express server and delivery worker.
+Open another terminal:
 
-### 6. Start the frontend
-
-Open a separate terminal:
-
-\`\`\`bash
+```bash
 cd client
 npm run dev
-\`\`\`
+```
 
-Open the local URL displayed by Vite.
+The frontend and backend will now run locally.
 
-## Deployment
+## ☁️ Deployment
 
-- **Frontend:** Vercel
-- **Backend API and Background Worker:** Render
-- **Database:** TiDB Cloud
-- **Queue Storage:** Upstash Redis
+| Component | Platform |
+|---|---|
+| Frontend | Vercel |
+| Backend | Render |
+| Database | TiDB Cloud |
+| Redis Queue | Upstash Redis |
 
-The frontend communicates with the deployed backend, while the backend handles authentication, database operations, queue processing, and real-time delivery events.
+## 📁 Project Structure
 
-## Future Enhancements
+```text
+DispatchFlow/
+├── client/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── App.css
+│   │   └── dispatchMap.jsx
+│   └── package.json
+│
+├── server/
+│   ├── config/
+│   ├── data/
+│   ├── ml/
+│   ├── routes/
+│   ├── workers/
+│   └── index.js
+│
+├── package.json
+└── README.md
+```
 
-- Smart driver assignment using distance, workload, and delivery performance scoring.
-- AI-powered dispatch assistant for operational queries and recommendations.
-- Delivery delay risk analysis.
-- Advanced delivery performance analytics.
+## 🔮 Future Improvements
 
-## Project Objective
+- Train ETA models using real historical delivery data.
+- Integrate live traffic information.
+- Improve ETA accuracy through continuous model evaluation.
+- Introduce delivery delay and risk alerts.
+- Expand driver availability and route optimization.
 
-DispatchFlow demonstrates full-stack application development, REST API design, authentication, relational database management, asynchronous job processing, priority queues, background workers, real-time communication, and cloud deployment.
-
-## Developer
+## 👨‍💻 Author
 
 **Anish Bhaktula**
 
-GitHub: https://github.com/anishWkx
+- GitHub: https://github.com/anishWkx
+- LinkedIn: https://www.linkedin.com/in/anish-bhaktula-b3b307286/
+
+---
+
+*DispatchFlow — Making delivery dispatch smarter through automation, intelligent recommendations, and predictive analytics.*
