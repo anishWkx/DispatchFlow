@@ -1,5 +1,7 @@
 # DispatchFlow — Intelligent Delivery Dispatch & ETA Analytics
 
+[![Backend Tests](https://github.com/anishWkx/DispatchFlow/actions/workflows/tests.yml/badge.svg)](https://github.com/anishWkx/DispatchFlow/actions/workflows/tests.yml)
+
 DispatchFlow is a full-stack delivery dispatch platform that combines asynchronous job processing, intelligent driver recommendations, ETA predictions, and delivery analytics.
 
 It manages the delivery lifecycle from order creation to completion, providing visibility into driver assignment decisions, delivery progress, and estimated delivery times.
@@ -74,6 +76,7 @@ It manages the delivery lifecycle from order creation to completion, providing v
 | Machine Learning | TensorFlow.js |
 | Data Visualization | Recharts |
 | Testing | Jest, Supertest |
+| CI/CD | GitHub Actions |
 | Frontend Deployment | Vercel |
 | Backend Deployment | Render |
 
@@ -117,11 +120,24 @@ npm test
 npm test -- --coverage
 ```
 
+## ⚙️ Continuous Integration
+
+DispatchFlow uses **GitHub Actions** to automate backend testing.
+
+- Runs automatically on pushes to `main`.
+- Runs on pull requests targeting `main`.
+- Installs dependencies using `npm ci`.
+- Executes the Jest test suite with coverage reporting.
+- Uses Node.js 24.
+
+[View GitHub Actions Workflows](https://github.com/anishWkx/DispatchFlow/actions)
+
 ## ⚙️ Local Setup & Installation
 
 ### Prerequisites
 
-- Node.js and npm
+- Node.js 24
+- npm
 - MySQL-compatible database
 - Redis instance
 
@@ -180,6 +196,10 @@ The frontend and backend will now run locally.
 
 ```text
 DispatchFlow/
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
 ├── client/
 │   ├── src/
 │   │   ├── App.jsx
@@ -213,4 +233,21 @@ DispatchFlow/
 └── README.md
 ```
 
-##
+## 🔮 Future Improvements
+
+- Train ETA models using real historical delivery data.
+- Integrate live traffic information.
+- Improve ETA accuracy through continuous model evaluation.
+- Introduce delivery delay and risk alerts.
+- Expand driver availability and route optimization.
+
+## 👨‍💻 Author
+
+**Anish Bhaktula**
+
+- GitHub: https://github.com/anishWkx
+- LinkedIn: https://www.linkedin.com/in/anish-bhaktula-b3b307286/
+
+---
+
+*DispatchFlow — Making delivery dispatch smarter through automation, intelligent recommendations, and predictive analytics.*
