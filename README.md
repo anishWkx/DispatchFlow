@@ -1,8 +1,8 @@
 # DispatchFlow — Intelligent Delivery Dispatch & ETA Analytics
 
-DispatchFlow is a full-stack delivery dispatch platform that combines asynchronous job processing, intelligent driver recommendations, machine-learning-based ETA predictions, and delivery analytics.
+DispatchFlow is a full-stack delivery dispatch platform that combines asynchronous job processing, intelligent driver recommendations, ETA predictions, and delivery analytics.
 
-It manages the delivery lifecycle from order creation to completion, while providing visibility into driver assignment decisions and estimated delivery times.
+It manages the delivery lifecycle from order creation to completion, providing visibility into driver assignment decisions, delivery progress, and estimated delivery times.
 
 ## 🚀 Live Demo
 
@@ -29,6 +29,7 @@ It manages the delivery lifecycle from order creation to completion, while provi
 - Password hashing using bcrypt.
 - MySQL/TiDB Cloud database integration.
 - Persistent users, drivers, deliveries, and assignment records.
+- Protected API endpoints with role-based authorization.
 
 ### 4. Intelligent Driver Recommendations
 - Evaluates available drivers using delivery-related factors.
@@ -46,7 +47,7 @@ It manages the delivery lifecycle from order creation to completion, while provi
 - TensorFlow.js-based neural network model.
 - Uses delivery distance, driver speed, pickup delay, and traffic-related features.
 - Generates ETA predictions for candidate driver assignments.
-- Includes a comparison against a baseline estimate.
+- Includes comparison against a baseline estimate.
 
 ### 6. ETA Analytics
 - Compare predicted ETA with simulated delivery duration.
@@ -54,7 +55,7 @@ It manages the delivery lifecycle from order creation to completion, while provi
 - Track MAE and RMSE metrics.
 - Analyze model predictions through the dashboard.
 
-### 7. Delivery Timeline
+### 7. Delivery Timeline & Real-Time Updates
 - Track assignment, pickup, transit, and delivery milestones.
 - Persist delivery lifecycle timestamps.
 - Display delivery progress in the dashboard.
@@ -62,150 +63,105 @@ It manages the delivery lifecycle from order creation to completion, while provi
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
+| Category | Technologies |
 |---|---|
 | Frontend | React, Vite, JavaScript, CSS |
 | Backend | Node.js, Express.js |
 | Database | MySQL, TiDB Cloud |
-| Queue | BullMQ, Redis |
+| Queue Processing | BullMQ, Redis |
 | Authentication | JWT, bcrypt |
+| Real-Time Communication | Socket.IO |
 | Machine Learning | TensorFlow.js |
-| Real-time | Socket.IO |
-| Deployment | Vercel, Render |
-| Queue Hosting | Upstash Redis |
+| Data Visualization | Recharts |
+| Testing | Jest, Supertest |
+| Frontend Deployment | Vercel |
+| Backend Deployment | Render |
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
-```text
-                 React + Vite Frontend
-                          |
-                          v
-                   Express REST API
-                          |
-             +------------+------------+
-             |            |            |
-             v            v            v
-          MySQL         Redis       JWT Auth
-        (TiDB Cloud)   Queue
-                          |
-                          v
-                    BullMQ Worker
-                          |
-                          v
-                 Driver Recommendation
-                          |
-                          v
-                  ML-based ETA Model
-                          |
-                          v
-                Delivery Assignment
-                          |
-                          v
-                 Delivery Lifecycle
-                          |
-                          v
-                 Dashboard Analytics
+1. A user creates a delivery request through the React frontend.
+2. The Express backend validates the request and stores delivery information in MySQL.
+3. The delivery job is added to the BullMQ queue using Redis.
+4. A background worker processes queued deliveries according to priority.
+5. The system evaluates available drivers and generates recommendations.
+6. A suitable driver is assigned and the delivery progresses through its lifecycle.
+7. ETA predictions and delivery analytics are generated.
+8. Socket.IO communicates real-time delivery updates to the frontend.
+
+## 🧪 Testing & Code Coverage
+
+DispatchFlow includes an automated backend testing suite built using **Jest and Supertest**.
+
+The tests cover API endpoints, authentication, authorization middleware, delivery processing, driver management, tracking, analytics, and error handling.
+
+### Test Results
+
+| Metric | Result |
+|---|---:|
+| Test Suites | 11 passed |
+| Automated Tests | 63 passed |
+| Statement Coverage | 100% |
+| Branch Coverage | 100% |
+| Function Coverage | 100% |
+| Line Coverage | 100% |
+
+### Run Tests Locally
+
+From the project root:
+
+```bash
+# Run all backend tests
+npm test
+
+# Run tests with coverage report
+npm test -- --coverage
 ```
 
-## 📊 ETA Prediction Model
-
-The ETA prediction pipeline uses a synthetic dataset to demonstrate model training and prediction.
-
-**Model inputs:**
-- Average driver speed
-- Pickup delay
-- Driver-to-pickup distance
-- Pickup-to-dropoff distance
-- Traffic multiplier
-
-**Model architecture:**
-- Input layer: 5 features
-- Hidden layer: 32 neurons with ReLU
-- Hidden layer: 16 neurons with ReLU
-- Output layer: 1 neuron with linear activation
-- Optimizer: Adam
-- Loss function: Mean Squared Error
-
-The model is trained and evaluated using a scenario-based train/test split.
-
-**Important:** The current training labels and delivery simulation are synthetic. The model demonstrates the ML pipeline and recommendation workflow; its metrics should not be interpreted as validated real-world ETA accuracy.
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/health` | Backend health check |
-| POST | `/api/auth/register` | Register a user |
-| POST | `/api/auth/login` | Authenticate a user |
-| GET | `/api/deliveries` | Retrieve deliveries |
-| POST | `/api/deliveries` | Create a delivery |
-| GET | `/api/deliveries/analytics/eta` | Retrieve ETA analytics |
-| GET | `/api/drivers` | Retrieve drivers |
-
-Protected endpoints require a valid JWT Bearer token.
-
-## ⚙️ Local Development
+## ⚙️ Local Setup & Installation
 
 ### Prerequisites
-- Node.js
-- MySQL
-- Redis
-- npm
 
-### 1. Clone the repository
+- Node.js and npm
+- MySQL-compatible database
+- Redis instance
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/anishWkx/DispatchFlow.git
 cd DispatchFlow
 ```
 
-### 2. Install dependencies
+### 2. Install Backend Dependencies
 
 ```bash
 npm install
-cd client
-npm install
-cd ..
 ```
 
-### 3. Configure environment variables
+Configure the required database, Redis, and authentication environment variables for your local setup.
 
-Create a `server/.env.development` file with your local database, Redis, and authentication configuration.
+### 3. Start the Backend
 
-Example:
-
-```env
-PORT=5001
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=dispatchflow_dev
-REDIS_HOST=localhost
-REDIS_PORT=6379
-JWT_SECRET=your_local_secret
-```
-
-Create `client/.env.local`:
-
-```env
-VITE_API_URL=http://localhost:5001
-```
-
-Use your own local credentials. Do not commit environment files or secrets.
-
-### 4. Start the backend
+From the project root:
 
 ```bash
 npm run dev
 ```
 
-### 5. Start the frontend
+The backend runs on the configured server port.
+
+### 4. Install Frontend Dependencies
 
 Open another terminal:
 
 ```bash
 cd client
+npm install
+```
+
+### 5. Start the Frontend
+
+```bash
 npm run dev
 ```
 
@@ -232,32 +188,29 @@ DispatchFlow/
 │   └── package.json
 │
 ├── server/
+│   ├── app.js
+│   ├── server.js
 │   ├── config/
 │   ├── data/
 │   ├── ml/
 │   ├── routes/
 │   ├── workers/
-│   └── index.js
+│   └── tests/
+│       ├── analytics.test.js
+│       ├── app.test.js
+│       ├── auth.test.js
+│       ├── authErrors.test.js
+│       ├── authMiddleware.test.js
+│       ├── delivery.test.js
+│       ├── deliveryList.test.js
+│       ├── deliveryQueueFailure.test.js
+│       ├── driver.test.js
+│       ├── health.test.js
+│       └── tracking.test.js
 │
 ├── package.json
+├── package-lock.json
 └── README.md
 ```
 
-## 🔮 Future Improvements
-
-- Train ETA models using real historical delivery data.
-- Integrate live traffic information.
-- Improve ETA accuracy through continuous model evaluation.
-- Introduce delivery delay and risk alerts.
-- Expand driver availability and route optimization.
-
-## 👨‍💻 Author
-
-**Anish Bhaktula**
-
-- GitHub: https://github.com/anishWkx
-- LinkedIn: https://www.linkedin.com/in/anish-bhaktula-b3b307286/
-
----
-
-*DispatchFlow — Making delivery dispatch smarter through automation, intelligent recommendations, and predictive analytics.*
+##
