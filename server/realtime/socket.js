@@ -7,12 +7,13 @@ let io;
 function initializeSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: [
-        "https://dispatch-flow-six.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-      ],
+    origin: [
+  "https://dispatch-flow-six.vercel.app",
+  "https://dispatch-flow-git-main-anish-and-team.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+],
       methods: ["GET", "POST"],
     },
   });
