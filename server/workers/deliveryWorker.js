@@ -312,10 +312,18 @@ const worker = new Worker(
 
       throw error;
     } finally {
-      if (driver) {
-        await releaseDriver(driver.id, deliveryId, delivered);
-      }
-    }
+  if (driver) {
+    await releaseDriver(driver.id, deliveryId, delivered);
+
+    // Refresh dashboards after the driver is actually released.
+    emitDeliveryUpdate({
+      deliveryId,
+      status: delivered ? "delivered" : "driver_released",
+      driverId: driver.id,
+      driverStatus: "available",
+    });
+  }
+}
   },
   {
     connection,
