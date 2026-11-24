@@ -17,7 +17,6 @@ function initializeSocket(httpServer) {
     },
   });
 
-  // Authenticate every socket connection using the existing JWT.
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
 
@@ -66,7 +65,14 @@ function emitDeliveryUpdate(data) {
   }
 }
 
+function emitTrackingUpdate(data) {
+  if (io) {
+    io.emit("tracking:update", data);
+  }
+}
+
 module.exports = {
   initializeSocket,
   emitDeliveryUpdate,
+  emitTrackingUpdate,
 };

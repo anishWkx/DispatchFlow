@@ -1,3 +1,4 @@
+
 const { Worker } = require("bullmq");
 const { connection } = require("../queues/deliveryQueue");
 const {
@@ -6,6 +7,9 @@ const {
 } = require("../data/driverManager");
 const pool = require("../config/db");
 const { emitDeliveryUpdate } = require("../realtime/socket");
+const {
+  simulateDeliveryTracking,
+} = require("../data/gpsSimulator");
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -149,6 +153,7 @@ const worker = new Worker(
         driverRecommendations: driver.driverRecommendations,
       });
 
+      // Pickup stage: 5 seconds.
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log("📦 [5s] Order picked up");
 
@@ -175,6 +180,7 @@ const worker = new Worker(
         message: "The driver has collected the order",
       });
 
+      // Preparation before transit: 5 seconds.
       await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log("🚚 [10s] Delivery in transit");
 
@@ -201,7 +207,18 @@ const worker = new Worker(
         message: "The order is on its way to the destination",
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      // Simulate GPS movement along the OSRM road route.
+      // The simulator controls the 15-second transit duration.
+      const trackingResult = await simulateDeliveryTracking({
+        deliveryId,
+        driverId: driver.id,
+        assignmentId,
+        pickup,
+        dropoff,
+        simulatedSpeedKmph,
+      });
+
+      console.log("📍 Tracking summary:", trackingResult);
       console.log("✅ [15s] Delivery completed!");
 
       await pool.execute(
@@ -257,6 +274,7 @@ const worker = new Worker(
           trafficMultiplier,
           simulatedPickupSeconds,
           simulatedTravelSeconds,
+          tracking: trackingResult,
         },
         completedAt: new Date().toISOString(),
       };

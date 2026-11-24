@@ -1349,6 +1349,7 @@ function App() {
     setUser(null);
     setDeliveries([]);
     setDrivers([]);
+    setTrackingPositions({});
     setSelectedDelivery(null);
     setAnalytics(emptyAnalytics);
     setError("");
@@ -1357,6 +1358,7 @@ function App() {
   const [deliveries, setDeliveries] = useState([]);
   const [totalDeliveryCount, setTotalDeliveryCount] = useState(0);
 const [drivers, setDrivers] = useState([]);
+  const [trackingPositions, setTrackingPositions] = useState({});
   const [analytics, setAnalytics] = useState(emptyAnalytics);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1503,6 +1505,15 @@ const [drivers, setDrivers] = useState([]);
 
   socket.on("delivery:update", () => {
     loadDashboard();
+  });
+
+  socket.on("tracking:update", (data) => {
+    if (!data || data.deliveryId == null) return;
+
+    setTrackingPositions((previous) => ({
+      ...previous,
+      [String(data.deliveryId)]: data,
+    }));
   });
 
   return () => {
@@ -1789,7 +1800,11 @@ const [drivers, setDrivers] = useState([]);
         {activePage === "overview" && (
           <>
             <CreateDelivery onCreated={loadDashboard} token={token} />
-            <DispatchMap deliveries={deliveries} drivers={drivers} />
+            <DispatchMap
+              deliveries={deliveries}
+              drivers={drivers}
+              trackingPositions={trackingPositions}
+            />
           </>
         )}
 
